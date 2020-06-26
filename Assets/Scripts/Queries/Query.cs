@@ -72,7 +72,7 @@ sealed class Query
         else if (source != StateSource.Event && source != StateSource.Character)
         {
             result = default;
-            Set(key, default, source);
+            Set(key, result, source);
             return false;
         }
         else
