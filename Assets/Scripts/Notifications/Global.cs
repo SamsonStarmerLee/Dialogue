@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace Notifications
+﻿namespace Notifications
 {
     /// NOTE: 
     /// These are used to append an event type name to the end of the classname for an observer.
@@ -30,4 +28,4 @@ namespace Notifications
 
     //    public static string CancelNotification(System.Type type) => $"{type.Name}.CancelNotification";
     //}
-    }
+}
