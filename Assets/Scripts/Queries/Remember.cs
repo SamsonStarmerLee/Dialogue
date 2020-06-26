@@ -10,18 +10,7 @@ namespace Remember
 
     #region Custom Manipulations
 
-    class RememberBarrel : IRememberer
-    {
-        public void Apply(Query query)
-        {
-            query.Increment("SeenBarrels", 1, StateSource.Memory);
-            query.Set("TimeOfLastBarrelComment", Time.time, StateSource.Memory);
-
-            // Tag object as seen.
-            query.Get<GameObject>("Target", StateSource.Event, out var obj);
-            obj.SetMemory("TargetSeen", true);
-        }
-    }
+    // Stuff goes here 
 
     #endregion
 

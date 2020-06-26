@@ -12,6 +12,13 @@ using RuleMap = System.Collections.Generic.Dictionary<(string concept, string wh
 // TODO: Explain how to write a rule
 // TODO: Explain why checked values populate memory.
 
+// Reserved words and characters:
+// Operators: '+', '-', '=', '*', '/', '>', '<', '!'
+// Words: 'timestamp', 'true', 'false'
+// Floating point: '.'
+// Target is shorthand
+// We don't allow criteria on 'Target' because that would attach memory to everything we look at
+
 namespace Assets.Scripts.Queries
 {
     sealed class RuleFixture
@@ -48,7 +55,8 @@ namespace Assets.Scripts.Queries
                         ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
                         ""MemoryCriteria"": ""isSeenBarrels=0"",
                         ""Response"": ""Oh look! A barrel!"",
-                        ""RememberMemory"": ""RememberBarrel"",
+                        ""RememberMemory"": ""setSeenBarrels+1, setTimeStampBarrelComment=TimeStamp"",
+                        ""RememberTarget"": ""setTargetSeen=true"",
                   },
                   {
                         ""Concept"": ""SeeObject"",
@@ -56,7 +64,8 @@ namespace Assets.Scripts.Queries
                         ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
                         ""MemoryCriteria"": ""isSeenBarrels=1"",
                         ""Response"": ""A second barrel... how curious."",
-                        ""RememberMemory"": ""RememberBarrel"",
+                        ""RememberMemory"": ""setSeenBarrels+1, setTimeStampBarrelComment=TimeStamp"",
+                        ""RememberTarget"": ""setTargetSeen=true"",
                   },
                   {
                         ""Concept"": ""SeeObject"",
@@ -64,7 +73,8 @@ namespace Assets.Scripts.Queries
                         ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
                         ""MemoryCriteria"": ""isSeenBarrels=2"",
                         ""Response"": ""A <i>third</i> barrel?! Surely not!"",
-                        ""RememberMemory"": ""RememberBarrel"",
+                        ""RememberMemory"": ""setSeenBarrels+1, setTimeStampBarrelComment=TimeStamp"",
+                        ""RememberTarget"": ""setTargetSeen=true"",
                   },
                   {
                         ""Concept"": ""SeeObject"",
@@ -72,7 +82,8 @@ namespace Assets.Scripts.Queries
                         ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
                         ""MemoryCriteria"": ""isSeenBarrels>2"",
                         ""Response"": ""More barrels."",
-                        ""RememberMemory"": ""RememberBarrel"",
+                        ""RememberMemory"": ""setSeenBarrels+1, setTimeStampBarrelComment=TimeStamp"",
+                        ""RememberTarget"": ""setTargetSeen=true"",
                   },
             ]";
 
@@ -370,7 +381,16 @@ namespace Assets.Scripts.Queries
 
         private static IRememberer SetFloat(OperatorSplit split, StateSource source)
         {
-            var f = float.Parse(split.Value);
+            float f;
+
+            if (split.Value.ToLowerInvariant() == "timestamp")
+            {
+                f = Time.time;
+            }
+            else
+            {
+                f = float.Parse(split.Value);
+            }
 
             switch (split.Operator)
             {

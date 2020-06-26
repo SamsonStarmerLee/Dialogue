@@ -144,7 +144,12 @@ sealed class Query
     {
         if (Get<GameObject>("Target", StateSource.Event, out var obj) && obj != null)
         {
-            return obj.GetMemory();
+            var mem = obj.GetMemory();
+            if (mem == null)
+            {
+                mem = obj.AddComponent<MemoryContainer>().Memory;
+            }
+            return mem;
         }
         else
         {
