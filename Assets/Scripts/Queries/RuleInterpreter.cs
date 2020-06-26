@@ -31,11 +31,13 @@ namespace Assets.Scripts.Queries
         public string CharacterCriteria;
         public string MemoryCriteria;
         public string WorldCriteria;
+        public string DoCriteria;
 
         // Rememberers
         public string RememberMemory;
         public string RememberWorld;
         public string RememberTarget;
+        public string DoRemember;
 
         // Successful rule response
         public string Response;
@@ -52,8 +54,9 @@ namespace Assets.Scripts.Queries
                   {
                         ""Concept"": ""SeeObject"",
                         ""Who"": ""Player"",
-                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
+                        ""EventCriteria"": ""isTargetName=Barrel"",                        
                         ""MemoryCriteria"": ""isSeenBarrels=0"",
+                        ""DoCriteria"": ""TargetNotSeen"",
                         ""Response"": ""Oh look! A barrel!"",
                         ""RememberMemory"": ""setSeenBarrels+1, setTimeStampBarrelComment=TimeStamp"",
                         ""RememberTarget"": ""setTargetSeen=true"",
@@ -97,9 +100,12 @@ namespace Assets.Scripts.Queries
                 var characterCriteria = ParseCriteriaCodes(fixture.CharacterCriteria, StateSource.Character);
                 var memoryCriteria    = ParseCriteriaCodes(fixture.MemoryCriteria, StateSource.Memory);
                 var worldCriteria     = ParseCriteriaCodes(fixture.WorldCriteria, StateSource.World);
+                var doCriteria        = ParseCustomCriteriaCodes(fixture.DoCriteria);
+
                 var memoryRememberers = ParseRemembererCodes(fixture.RememberMemory, StateSource.Memory);
                 var worldRememberers  = ParseRemembererCodes(fixture.RememberWorld, StateSource.World);
                 var targetRememberers = ParseRemembererCodes(fixture.RememberTarget, StateSource.Target);
+                var doRememberers     = ParseCustomRemembererCodes(fixture.DoRemember);
 
                 var ruleKey = (fixture.Concept, fixture.Who);
                 if (!ruleMap.ContainsKey(ruleKey))
@@ -157,6 +163,30 @@ namespace Assets.Scripts.Queries
             return rememberers
                 .Split(dividers, StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => InterpretRememberCode(x, source));
+        }
+
+        private static IEnumerable<ICriterion> ParseCustomCriteriaCodes(string criteria)
+        {
+            if (string.IsNullOrWhiteSpace(criteria))
+            {
+                return Enumerable.Empty<ICriterion>();
+            }
+
+            return criteria
+                .Split(dividers, StringSplitOptions.RemoveEmptyEntries)
+                .Select(code => CustomCriteria(code));
+        }
+
+        private static IEnumerable<IRememberer> ParseCustomRemembererCodes(string rememberers)
+        {
+            if (string.IsNullOrWhiteSpace(rememberers))
+            {
+                return Enumerable.Empty<IRememberer>();
+            }
+
+            return rememberers
+                .Split(dividers, StringSplitOptions.RemoveEmptyEntries)
+                .Select(code => CustomRemember(code));
         }
 
         struct OperatorSplit
@@ -230,11 +260,6 @@ namespace Assets.Scripts.Queries
                         return new IsEqual<string>(split.Key, split.Value, source);
                     }
                 }
-            }
-            else
-            {
-                // Custom operation.
-                return CustomCriteria(code);
             }
 
             // Failed to interpret.
@@ -343,11 +368,6 @@ namespace Assets.Scripts.Queries
                         return new Set(split.Key, split.Value, source);
                     }
                 }
-            }
-            else
-            {
-                /// Custom operation.
-                return CustomRemember(code);
             }
 
             /// Failed to interpret.
