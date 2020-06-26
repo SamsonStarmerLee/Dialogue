@@ -15,9 +15,28 @@ sealed class Query
     /// </summary>
     public readonly string Who;
 
+    /// <summary>
+    /// State set by whatever event triggered a query. 
+    /// Includes information about what is currently happening.
+    /// </summary>
     private readonly Dictionary<string, object> @event;
+
+    /// <summary>
+    /// Includes information about the querying character's state, 
+    /// such as that character's current position, rotation, stats, etc.
+    /// </summary>
     private readonly Dictionary<string, object> character;
+
+    /// <summary>
+    /// The triggering character's personal memory.
+    /// Intended to store running tallies of things seen, interacted with, performed, etc.
+    /// </summary>
     private readonly Dictionary<string, object> memory;
+
+    /// <summary>
+    /// Collective memory of the gameworld.
+    /// A globally accessible equivalent to [memory].
+    /// </summary>
     private readonly Dictionary<string, object> world;
 
     public Query(
@@ -50,10 +69,15 @@ sealed class Query
             result = t;
             return true;
         }
+        else if (source != StateSource.Event && source != StateSource.Character)
+        {
+            result = default;
+            Set(key, default, source);
+            return false;
+        }
         else
         {
             result = default;
-            Set(key, result, source);
             return false;
         }
     }
@@ -105,8 +129,26 @@ sealed class Query
                 return memory;
             case StateSource.World:
                 return world;
+            case StateSource.Target:
+                return GetTargetMemory();
             default:
                 return null;
+        }
+    }
+
+    /// <summary>
+    /// Queries the reserved "Target" state for a gameobject, returning its memory.
+    /// This will add memory to any valid gameobject returned that does not have one.
+    /// </summary>
+    private Dictionary<string, object> GetTargetMemory()
+    {
+        if (Get<GameObject>("Target", StateSource.Event, out var obj) && obj != null)
+        {
+            return obj.GetMemory();
+        }
+        else
+        {
+            return null;
         }
     }
 }

@@ -19,15 +19,18 @@ namespace Assets.Scripts.Queries
         public string Concept;
         public string Who;
 
+        // Criterions
         public string EventCriteria;
         public string CharacterCriteria;
         public string MemoryCriteria;
         public string WorldCriteria;
 
-        // TODO: Rename to RememberCharacter and RememberWorld.
+        // Rememberers
         public string RememberMemory;
         public string RememberWorld;
+        public string RememberTarget;
 
+        // Successful rule response
         public string Response;
     }
 
@@ -85,6 +88,7 @@ namespace Assets.Scripts.Queries
                 var worldCriteria     = ParseCriteriaCodes(fixture.WorldCriteria, StateSource.World);
                 var memoryRememberers = ParseRemembererCodes(fixture.RememberMemory, StateSource.Memory);
                 var worldRememberers  = ParseRemembererCodes(fixture.RememberWorld, StateSource.World);
+                var targetRememberers = ParseRemembererCodes(fixture.RememberTarget, StateSource.Target);
 
                 var ruleKey = (fixture.Concept, fixture.Who);
                 if (!ruleMap.ContainsKey(ruleKey))
@@ -101,6 +105,7 @@ namespace Assets.Scripts.Queries
 
                 var remember = memoryRememberers
                     .Concat(worldRememberers)
+                    .Concat(targetRememberers)
                     .ToArray();
 
                 ruleMap[ruleKey].Add(new GeneratedRule(
