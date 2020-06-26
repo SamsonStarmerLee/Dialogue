@@ -18,9 +18,8 @@ namespace Remember
             query.Set("TimeOfLastBarrelComment", Time.time, StateSource.Memory);
 
             // Tag object as seen.
-            query
-                .Get<GameObject>("Object", StateSource.Event)
-                .SetMemory("ObjectSeen", true);
+            query.Get<GameObject>("Target", StateSource.Event, out var obj);
+            obj.SetMemory("TargetSeen", true);
         }
     }
 
@@ -66,8 +65,8 @@ namespace Remember
 
         public void Apply(Query query)
         {
-            var result = query.Get<int>(key, source) + addition;
-            query.Set(key, result, source);
+            query.Get<int>(key, source, out var current);
+            query.Set(key, current + addition, source);
         }
     }
 
@@ -86,8 +85,8 @@ namespace Remember
 
         public void Apply(Query query)
         {
-            var result = query.Get<int>(key, source) - subtraction;
-            query.Set(key, result, source);
+            query.Get<int>(key, source, out var current);
+            query.Set(key, current - subtraction, source);
         }
     }
 
@@ -110,8 +109,8 @@ namespace Remember
 
         public void Apply(Query query)
         {
-            var result = query.Get<float>(key, source) + addition;
-            query.Set(key, result, source);
+            query.Get<float>(key, source, out var current);
+            query.Set(key, current + addition, source);
         }
     }
 
@@ -130,8 +129,8 @@ namespace Remember
 
         public void Apply(Query query)
         {
-            var result = query.Get<float>(key, source) - subtraction;
-            query.Set(key, result, source);
+            query.Get<float>(key, source, out var current);
+            query.Set(key, current - subtraction, source);
         }
     }
 
@@ -150,8 +149,8 @@ namespace Remember
 
         public void Apply(Query query)
         {
-            var result = query.Get<float>(key, source) * multiplication;
-            query.Set(key, result, source);
+            query.Get<float>(key, source, out var current);
+            query.Set(key, current * multiplication, source);
         }
     }
 
@@ -170,8 +169,8 @@ namespace Remember
 
         public void Apply(Query query)
         {
-            var result = query.Get<float>(key, source) / division;
-            query.Set(key, result, source);
+            query.Get<float>(key, source, out var current);
+            query.Set(key, current / division, source);
         }
     }
 

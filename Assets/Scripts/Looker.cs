@@ -37,16 +37,16 @@ namespace Assets.Scripts
                     var targetMemory = hit.transform.GetMemory();
                     var targetSeen = false;
 
-                    if (targetMemory != null && targetMemory.TryGetValue("ObjectSeen", out var value))
+                    if (targetMemory != null && targetMemory.TryGetValue("TargetSeen", out var value))
                     {
                         targetSeen = (bool)value;
                     }
 
                     var @event = new Dictionary<string, object>
                     {
-                        { "Object", hit.transform.gameObject },
-                        { "ObjectName", hit.transform.name },
-                        { "ObjectSeen", targetSeen },
+                        { "Target", hit.transform.gameObject },
+                        { "TargetName", hit.transform.name },
+                        { "TargetSeen", targetSeen },
                     };
 
                     var character = GenerateCharacterState();

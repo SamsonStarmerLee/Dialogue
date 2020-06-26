@@ -15,36 +15,47 @@ sealed class Query
     /// </summary>
     public readonly string Who;
 
-    private readonly Dictionary<string, object>[] stateSources;
+    private readonly Dictionary<string, object> @event;
+    private readonly Dictionary<string, object> character;
+    private readonly Dictionary<string, object> memory;
+    private readonly Dictionary<string, object> world;
 
     public Query(
         string concept,
         string who,
-        Dictionary<string, object> eventState,
+        Dictionary<string, object> @event,
         Dictionary<string, object> character,
         Dictionary<string, object> memory,
         Dictionary<string, object> world)
     {
         Concept = concept;
         Who = who;
-
-        stateSources = new Dictionary<string, object>[4];
-        stateSources[0] = eventState;
-        stateSources[1] = character;
-        stateSources[2] = memory;
-        stateSources[3] = world;
+        this.@event = @event;
+        this.character = character;
+        this.memory = memory;
+        this.world = world;
     }
 
     /// <summary>
-    /// Check for a value with given type [T] in memory. 
-    /// Will return default if no such key exists.
+    /// Returns true if a value of type [T] exists in state, populating it into [result].
+    /// [result] will return the default value if not present or of mismatching type.
+    /// IMPORTANT: If the value is not present, the default value _will be set into state_.
     /// </summary>
-    public T Get<T>(string key, StateSource source)
+    public bool Get<T>(string key, StateSource source, out T result)
     {
-        var s = stateSources[(int)source];
-        return s.ContainsKey(key)
-           ? (T)s[key]
-           : default;
+        GetState(source).TryGetValue(key, out var value);
+
+        if (value is T t)
+        {
+            result = t;
+            return true;
+        }
+        else
+        {
+            result = default;
+            Set(key, result, source);
+            return false;
+        }
     }
 
     /// <summary>
@@ -58,24 +69,44 @@ sealed class Query
             Debug.LogError($"Cannot set values in source {source}.");
         }
 
-        var s = stateSources[(int)source];
-        s[key] = value;
+        var state = GetState(source);
+        state[key] = value;
     }
 
     /// <summary>
-    /// Runs a method on the value at key, setting it back in memory.
+    /// Runs a method on the value at [key], setting it back in state.
+    /// The transformation will be ran on a new default value if not present in state.
     /// </summary>
     public void Transform<T>(string key, Func<T, T> transformation, StateSource source)
     {
-        var value = Get<T>(key, source);
+        Get(key, source, out T value);
         Set(key, transformation.Invoke(value), source);
     }
 
     /// <summary>
     /// Increments an int stored at [key] by [amount].
+    /// Will increment and set a new value from 0 if not present in state.
     /// </summary>
     public void Increment(string key, int amount, StateSource source)
     {
-        Set(key, Get<int>(key, source) + amount, source);
+        Get(key, source, out int value);
+        Set(key, value + amount, source);
+    }
+
+    private Dictionary<string, object> GetState(StateSource source)
+    {
+        switch (source)
+        {
+            case StateSource.Event:
+                return @event;
+            case StateSource.Character:
+                return character;
+            case StateSource.Memory:
+                return memory;
+            case StateSource.World:
+                return world;
+            default:
+                return null;
+        }
     }
 }

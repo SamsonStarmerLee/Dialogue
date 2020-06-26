@@ -10,6 +10,7 @@ using Remember;
 using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Assets.Scripts.Queries.Rule>>;
 
 // TODO: Explain how to write a rule
+// TODO: Explain why checked values populate memory.
 
 namespace Assets.Scripts.Queries
 {
@@ -41,7 +42,7 @@ namespace Assets.Scripts.Queries
                   {
                         ""Concept"": ""SeeObject"",
                         ""Who"": ""Player"",
-                        ""EventCriteria"": ""isObjectName=Barrel, ObjectNotSeen"",
+                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
                         ""MemoryCriteria"": ""isSeenBarrels=0"",
                         ""Response"": ""Oh look! A barrel!"",
                         ""RememberMemory"": ""RememberBarrel"",
@@ -49,7 +50,7 @@ namespace Assets.Scripts.Queries
                   {
                         ""Concept"": ""SeeObject"",
                         ""Who"": ""Player"",
-                        ""EventCriteria"": ""isObjectName=Barrel, ObjectNotSeen"",
+                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
                         ""MemoryCriteria"": ""isSeenBarrels=1"",
                         ""Response"": ""A second barrel... how curious."",
                         ""RememberMemory"": ""RememberBarrel"",
@@ -57,7 +58,7 @@ namespace Assets.Scripts.Queries
                   {
                         ""Concept"": ""SeeObject"",
                         ""Who"": ""Player"",
-                        ""EventCriteria"": ""isObjectName=Barrel, ObjectNotSeen"",
+                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
                         ""MemoryCriteria"": ""isSeenBarrels=2"",
                         ""Response"": ""A <i>third</i> barrel?! Surely not!"",
                         ""RememberMemory"": ""RememberBarrel"",
@@ -65,7 +66,7 @@ namespace Assets.Scripts.Queries
                   {
                         ""Concept"": ""SeeObject"",
                         ""Who"": ""Player"",
-                        ""EventCriteria"": ""isObjectName=Barrel, ObjectNotSeen"",
+                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
                         ""MemoryCriteria"": ""isSeenBarrels>2"",
                         ""Response"": ""More barrels."",
                         ""RememberMemory"": ""RememberBarrel"",
@@ -108,8 +109,8 @@ namespace Assets.Scripts.Queries
                     fixture.Response));
             }
 
-            /// Sort each collection of rules in decending number of criteria,
-            /// i.e. We want to take more specific rules first.
+            // Sort each collection of rules in decending number of criteria,
+            // i.e. We want to take more specific rules first.
             foreach (var l in toOrganize)
             {
                 l.Sort((x, y) => y.NumCriteria.CompareTo(x.NumCriteria));
@@ -187,27 +188,27 @@ namespace Assets.Scripts.Queries
                     var value = split.Value;
                     var op = split.Operator;
 
-                    /// Check for bool
-                    /// NOTE: Because of this, 'true' and 'false' are reserved strings.
+                    // Check for bool
+                    // NOTE: Because of this, 'true' and 'false' are reserved strings.
                     if (op == '=' && value == "true" || value == "false")
                     {
                         return IsBool(split, source);
                     }
 
-                    /// Check for a number 
-                    /// Any value containing a decimal is a float check.
+                    // Check for a number 
+                    // Any value containing a decimal is a float check.
                     else if (value.Contains('.'))
                     {
                          return IsFloat(split, source);
                     }
 
-                    /// A value containing all digits is an int check.
+                    // A value containing all digits is an int check.
                     else if (value.All(char.IsDigit))
                     {
                         return IsInt(split, source);
                     }
 
-                    /// String comparison.
+                    // String comparison.
                     else if (op == '=')
                     {
                         return new IsEqual<string>(split.Key, split.Value, source);
@@ -216,11 +217,11 @@ namespace Assets.Scripts.Queries
             }
             else
             {
-                /// Custom operation.
+                // Custom operation.
                 return CustomCriteria(code);
             }
 
-            /// Failed to interpret.
+            // Failed to interpret.
             Debug.LogError($"Failed to interpret criteria: {code}.");
             return null;
         }
@@ -410,7 +411,6 @@ namespace Assets.Scripts.Queries
     {
         private readonly ICriterion[] criteria;
         private readonly IRememberer[] rememberers;
-
         private readonly string response;
 
         public GeneratedRule(
@@ -429,11 +429,13 @@ namespace Assets.Scripts.Queries
 
         public override void Response(Query query)
         {
+            query.Get<Color>("SubtitleColor", StateSource.Character, out var color);
+
             var subtitle = new SubtitleRequest()
             {
                 Speaker = query.Who,
                 Text = response,
-                Color = query.Get<Color>("SubtitleColor", StateSource.Character)
+                Color = color
             };
 
             // TEMP
@@ -453,7 +455,7 @@ namespace Assets.Scripts.Queries
 //                  {
 //                        ""Concept"": ""SeeObject"",
 //                        ""Who"": ""Player"",
-//                        ""EventCriteria"": ""isObjectName=Barrel, ObjectNotSeen"",
+//                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
 //                        ""CharacterCriteria"": """",
 //                        ""MemoryCriteria"": ""isSeenBarrels=0"",
 //                        ""WorldCriteria"": """",
@@ -464,7 +466,7 @@ namespace Assets.Scripts.Queries
 //                  {
 //                        ""Concept"": ""SeeObject"",
 //                        ""Who"": ""Player"",
-//                        ""EventCriteria"": ""isObjectName=Barrel, ObjectNotSeen"",
+//                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
 //                        ""CharacterCriteria"": """",
 //                        ""MemoryCriteria"": ""isSeenBarrels=1"",
 //                        ""WorldCriteria"": """",
@@ -475,7 +477,7 @@ namespace Assets.Scripts.Queries
 //                  {
 //                        ""Concept"": ""SeeObject"",
 //                        ""Who"": ""Player"",
-//                        ""EventCriteria"": ""isObjectName=Barrel, ObjectNotSeen"",
+//                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
 //                        ""CharacterCriteria"": """",
 //                        ""MemoryCriteria"": ""isSeenBarrels=2"",
 //                        ""WorldCriteria"": """",
@@ -486,7 +488,7 @@ namespace Assets.Scripts.Queries
 //                  {
 //                        ""Concept"": ""SeeObject"",
 //                        ""Who"": ""Player"",
-//                        ""EventCriteria"": ""isObjectName=Barrel, ObjectNotSeen"",
+//                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
 //                        ""CharacterCriteria"": """",
 //                        ""MemoryCriteria"": ""isSeenBarrels>2"",
 //                        ""WorldCriteria"": """",
