@@ -1,11 +1,13 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Assets.Scripts.Queries.Subtitles;
 using Criteria;
 using System.Linq;
 using Remember;
+using System.IO;
+using CsvHelper;
+using System.Globalization;
 
 using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Assets.Scripts.Queries.Rule>>;
 
@@ -19,116 +21,55 @@ using RuleMap = System.Collections.Generic.Dictionary<(string concept, string wh
 // Target is shorthand
 // We don't allow criteria on 'Target' because that would attach memory to everything we look at
 
+// TODO: Right now, custom criteria/remememberers are found using reflection, making them slow to do many times. 
+// Perhaps replace with a dictionary or something.
+
 namespace Assets.Scripts.Queries
 {
-    sealed class RuleFixture
-    {
-        public string Concept;
-        public string Who;
-
-        // Criterions
-        public string EventCriteria;
-        public string CharacterCriteria;
-        public string MemoryCriteria;
-        public string WorldCriteria;
-        public string DoCriteria;
-
-        // Rememberers
-        public string RememberMemory;
-        public string RememberWorld;
-        public string RememberTarget;
-        public string DoRemember;
-
-        // Successful rule response
-        public string Response;
-    }
-
     sealed class RuleInterpreter
     {
-        static readonly char[] dividers = { ',', ' ' };
+        static readonly string[] dividers = { Environment.NewLine, "\r\n", "\n" };
+
+        sealed class RuleFixture
+        {
+            public string Concept { get; set; }
+            
+            public string Who { get; set; }
+
+            public string Response { get; set; }
+            
+            public string Criteria { get; set; }
+
+            public string Remember { get; set; }
+        }
 
         public static RuleMap Interpret()
         {
-            const string ruleJson = @"
-            [
-                  {
-                        ""Concept"": ""SeeObject"",
-                        ""Who"": ""Player"",
-                        ""EventCriteria"": ""isTargetName=Barrel"",                        
-                        ""MemoryCriteria"": ""isSeenBarrels=0"",
-                        ""DoCriteria"": ""TargetNotSeen"",
-                        ""Response"": ""Oh look! A barrel!"",
-                        ""RememberMemory"": ""setSeenBarrels+1, setTimeStampBarrelComment=TimeStamp"",
-                        ""RememberTarget"": ""setTargetSeen=true"",
-                  },
-                  {
-                        ""Concept"": ""SeeObject"",
-                        ""Who"": ""Player"",
-                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
-                        ""MemoryCriteria"": ""isSeenBarrels=1"",
-                        ""Response"": ""A second barrel... how curious."",
-                        ""RememberMemory"": ""setSeenBarrels+1, setTimeStampBarrelComment=TimeStamp"",
-                        ""RememberTarget"": ""setTargetSeen=true"",
-                  },
-                  {
-                        ""Concept"": ""SeeObject"",
-                        ""Who"": ""Player"",
-                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
-                        ""MemoryCriteria"": ""isSeenBarrels=2"",
-                        ""Response"": ""A <i>third</i> barrel?! Surely not!"",
-                        ""RememberMemory"": ""setSeenBarrels+1, setTimeStampBarrelComment=TimeStamp"",
-                        ""RememberTarget"": ""setTargetSeen=true"",
-                  },
-                  {
-                        ""Concept"": ""SeeObject"",
-                        ""Who"": ""Player"",
-                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
-                        ""MemoryCriteria"": ""isSeenBarrels>2"",
-                        ""Response"": ""More barrels."",
-                        ""RememberMemory"": ""setSeenBarrels+1, setTimeStampBarrelComment=TimeStamp"",
-                        ""RememberTarget"": ""setTargetSeen=true"",
-                  },
-            ]";
-
-            var fixtures = JsonConvert.DeserializeObject<RuleFixture[]>(ruleJson);
             var ruleMap = new RuleMap();
             var toOrganize = new List<List<Rule>>();
 
-            foreach (var fixture in fixtures)
+            using (var reader = new StreamReader(Application.dataPath + "/Resources/Dialogue/csvtest.csv"))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
-                var eventCriteria     = ParseCriteriaCodes(fixture.EventCriteria, StateSource.Event);
-                var characterCriteria = ParseCriteriaCodes(fixture.CharacterCriteria, StateSource.Character);
-                var memoryCriteria    = ParseCriteriaCodes(fixture.MemoryCriteria, StateSource.Memory);
-                var worldCriteria     = ParseCriteriaCodes(fixture.WorldCriteria, StateSource.World);
-                var doCriteria        = ParseCustomCriteriaCodes(fixture.DoCriteria);
+                var fixtures = csv.GetRecords<RuleFixture>();
 
-                var memoryRememberers = ParseRemembererCodes(fixture.RememberMemory, StateSource.Memory);
-                var worldRememberers  = ParseRemembererCodes(fixture.RememberWorld, StateSource.World);
-                var targetRememberers = ParseRemembererCodes(fixture.RememberTarget, StateSource.Target);
-                var doRememberers     = ParseCustomRemembererCodes(fixture.DoRemember);
-
-                var ruleKey = (fixture.Concept, fixture.Who);
-                if (!ruleMap.ContainsKey(ruleKey))
+                foreach (var fixture in fixtures)
                 {
-                    ruleMap[ruleKey] = new List<Rule>();
-                    toOrganize.Add(ruleMap[ruleKey]);
+                    var criteria = ParseCriteriaCodes(fixture.Criteria);
+                    var remember = ParseRemembererCodes(fixture.Remember);
+
+                    var ruleKey = (fixture.Concept, fixture.Who);
+                    if (!ruleMap.ContainsKey(ruleKey))
+                    {
+                        ruleMap[ruleKey] = new List<Rule>();
+                        toOrganize.Add(ruleMap[ruleKey]);
+                    }
+
+                    ruleMap[ruleKey].Add(new GeneratedRule(
+                        criteria.ToArray(),
+                        remember.ToArray(),
+                        fixture.Response));
                 }
-
-                var criteria = eventCriteria
-                   .Concat(characterCriteria)
-                   .Concat(memoryCriteria)
-                   .Concat(worldCriteria)
-                   .ToArray();
-
-                var remember = memoryRememberers
-                    .Concat(worldRememberers)
-                    .Concat(targetRememberers)
-                    .ToArray();
-
-                ruleMap[ruleKey].Add(new GeneratedRule(
-                    criteria,
-                    remember,
-                    fixture.Response));
             }
 
             // Sort each collection of rules in decending number of criteria,
@@ -141,7 +82,7 @@ namespace Assets.Scripts.Queries
             return ruleMap;
         }
 
-        private static IEnumerable<ICriterion> ParseCriteriaCodes(string criteria, StateSource source)
+        private static IEnumerable<ICriterion> ParseCriteriaCodes(string criteria)
         {
             if (string.IsNullOrWhiteSpace(criteria))
             {
@@ -150,10 +91,10 @@ namespace Assets.Scripts.Queries
 
             return criteria
                 .Split(dividers, StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => InterpretCriteriaCode(x, source));
+                .Select(x => InterpretCriteriaCode(x));
         }
 
-        private static IEnumerable<IRememberer> ParseRemembererCodes(string rememberers, StateSource source)
+        private static IEnumerable<IRememberer> ParseRemembererCodes(string rememberers)
         {
             if (string.IsNullOrWhiteSpace(rememberers))
             {
@@ -162,59 +103,42 @@ namespace Assets.Scripts.Queries
 
             return rememberers
                 .Split(dividers, StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => InterpretRememberCode(x, source));
+                .Select(x => InterpretRememberCode(x));
         }
 
-        private static IEnumerable<ICriterion> ParseCustomCriteriaCodes(string criteria)
+        struct RuleSplit
         {
-            if (string.IsNullOrWhiteSpace(criteria))
-            {
-                return Enumerable.Empty<ICriterion>();
-            }
-
-            return criteria
-                .Split(dividers, StringSplitOptions.RemoveEmptyEntries)
-                .Select(code => CustomCriteria(code));
-        }
-
-        private static IEnumerable<IRememberer> ParseCustomRemembererCodes(string rememberers)
-        {
-            if (string.IsNullOrWhiteSpace(rememberers))
-            {
-                return Enumerable.Empty<IRememberer>();
-            }
-
-            return rememberers
-                .Split(dividers, StringSplitOptions.RemoveEmptyEntries)
-                .Select(code => CustomRemember(code));
-        }
-
-        struct OperatorSplit
-        {
+            public StateSource Source;
             public string Key;
             public char Operator;
             public string Value;
         }
 
-        private static bool SplitOnOperator(string raw, out OperatorSplit split, params char[] operators)
+        private static bool SplitOnOperator(string raw, out RuleSplit split, params char[] operators)
         {
             var index = raw.IndexOfAny(operators);
-
             if (index == -1)
             {
                 split = default;
                 return false;
             }
 
-            var key = raw.Substring(0, index);
-            var op = raw[index];
-            var value = raw.Substring(index + 1);
-
-            split = new OperatorSplit
+            var sourceCodes = new Dictionary<char, StateSource>() 
             {
-                Key = key,
-                Operator = op,
-                Value = value
+                { 'e', StateSource.Event },
+                { 'c', StateSource.Character },
+                { 'm', StateSource.Memory },
+                { 'w', StateSource.World },
+                { 't', StateSource.Target },
+                { '*', StateSource.Custom },
+            };
+
+            split = new RuleSplit
+            {
+                Source = sourceCodes[raw[0]],
+                Key = raw.Substring(1, index - 1),
+                Operator = raw[index],
+                Value = raw.Substring(index + 1)
             };
 
             return true;
@@ -222,43 +146,45 @@ namespace Assets.Scripts.Queries
 
         #region Is Operators
 
-        private static ICriterion InterpretCriteriaCode(string code, StateSource source)
+        private static ICriterion InterpretCriteriaCode(string code)
         {
-            if (code.StartsWith("is"))
+            if (SplitOnOperator(code, out var split, '=', '>', '<', '!'))
             {
-                var subCode = code.Remove(0, 2);
-
-                if (SplitOnOperator(subCode, out var split, '=', '>', '<', '!'))
+                if (split.Source == StateSource.Custom)
                 {
-                    var key = split.Key;
-                    var value = split.Value;
-                    var op = split.Operator;
+                    return CustomCriteria(code);
+                }
 
-                    // Check for bool
-                    // NOTE: Because of this, 'true' and 'false' are reserved strings.
-                    if (op == '=' && value == "true" || value == "false")
-                    {
-                        return IsBool(split, source);
-                    }
+                var source = split.Source;
+                var key = split.Key;
+                var value = split.Value;
+                var op = split.Operator;
 
-                    // Check for a number 
-                    // Any value containing a decimal is a float check.
-                    else if (value.Contains('.'))
-                    {
-                         return IsFloat(split, source);
-                    }
 
-                    // A value containing all digits is an int check.
-                    else if (value.All(char.IsDigit))
-                    {
-                        return IsInt(split, source);
-                    }
+                // Check for bool
+                // NOTE: Because of this, 'true' and 'false' are reserved strings.
+                if (op == '=' && value == "true" || value == "false")
+                {
+                    return IsBool(split, source);
+                }
 
-                    // String comparison.
-                    else if (op == '=')
-                    {
-                        return new IsEqual<string>(split.Key, split.Value, source);
-                    }
+                // Check for a number 
+                // Any value containing a decimal is a float check.
+                else if (value.Contains('.'))
+                {
+                        return IsFloat(split, source);
+                }
+
+                // A value containing all digits is an int check.
+                else if (value.All(char.IsDigit))
+                {
+                    return IsInt(split, source);
+                }
+
+                // String comparison.
+                else if (op == '=')
+                {
+                    return new IsEqual<string>(split.Key, split.Value, source);
                 }
             }
 
@@ -267,7 +193,7 @@ namespace Assets.Scripts.Queries
             return null;
         }
 
-        private static ICriterion IsInt(OperatorSplit split, StateSource source)
+        private static ICriterion IsInt(RuleSplit split, StateSource source)
         {
             var i = int.Parse(split.Value);
 
@@ -287,7 +213,7 @@ namespace Assets.Scripts.Queries
             }
         }
 
-        private static ICriterion IsFloat(OperatorSplit split, StateSource source)
+        private static ICriterion IsFloat(RuleSplit split, StateSource source)
         {
             var f = float.Parse(split.Value);
 
@@ -307,7 +233,7 @@ namespace Assets.Scripts.Queries
             }
         }
 
-        private static ICriterion IsBool(OperatorSplit split, StateSource source)
+        private static ICriterion IsBool(RuleSplit split, StateSource source)
         {
             var b = bool.Parse(split.Value);
             return new IsEqual<bool>(split.Key, b, source);
@@ -330,43 +256,44 @@ namespace Assets.Scripts.Queries
 
         #region Set Operators
 
-        private static IRememberer InterpretRememberCode(string code, StateSource source)
+        private static IRememberer InterpretRememberCode(string code)
         {
-            if (code.StartsWith("set"))
+            if (SplitOnOperator(code, out var split, '=', '-', '+', '*', '/'))
             {
-                var subCode = code.Remove(0, 3);
-
-                if (SplitOnOperator(subCode, out var split, '=', '-', '+', '*', '/'))
+                if (split.Source == StateSource.Custom)
                 {
-                    var key = split.Key;
-                    var value = split.Value;
-                    var op = split.Operator;
+                    return CustomRemember(code);
+                }
 
-                    /// Bool assignment.
-                    /// NOTE: Because of this, 'true' and 'false' are reserved strings.
-                    if (op == '=' && value == "true" || value == "false")
-                    {
-                        return SetBool(split, source);
-                    }
+                var source = split.Source;
+                var key = split.Key;
+                var value = split.Value;
+                var op = split.Operator;
 
-                    /// Check for a number 
-                    /// Any value containing a decimal is a float manipulation.
-                    else if (value.Contains('.'))
-                    {
-                        return SetFloat(split, source);
-                    }
+                /// Bool assignment.
+                /// NOTE: Because of this, 'true' and 'false' are reserved strings.
+                if (op == '=' && value == "true" || value == "false")
+                {
+                    return SetBool(split, source);
+                }
 
-                    /// A value containing all digits is an int manipulation.
-                    else if (value.All(char.IsDigit))
-                    {
-                        return SetInt(split, source);
-                    }
+                /// Check for a number 
+                /// Any value containing a decimal is a float manipulation.
+                else if (value.Contains('.'))
+                {
+                    return SetFloat(split, source);
+                }
 
-                    /// String assignment.
-                    else if (op == '=')
-                    {
-                        return new Set(split.Key, split.Value, source);
-                    }
+                /// A value containing all digits is an int manipulation.
+                else if (value.All(char.IsDigit))
+                {
+                    return SetInt(split, source);
+                }
+
+                /// String assignment.
+                else if (op == '=')
+                {
+                    return new Set(split.Key, split.Value, source);
                 }
             }
 
@@ -375,7 +302,7 @@ namespace Assets.Scripts.Queries
             return null;
         }
 
-        private static IRememberer SetInt(OperatorSplit split, StateSource source)
+        private static IRememberer SetInt(RuleSplit split, StateSource source)
         {
             var i = int.Parse(split.Value);
 
@@ -399,7 +326,7 @@ namespace Assets.Scripts.Queries
             }
         }
 
-        private static IRememberer SetFloat(OperatorSplit split, StateSource source)
+        private static IRememberer SetFloat(RuleSplit split, StateSource source)
         {
             float f;
 
@@ -430,7 +357,7 @@ namespace Assets.Scripts.Queries
             }
         }
 
-        private static IRememberer SetBool(OperatorSplit split, StateSource source)
+        private static IRememberer SetBool(RuleSplit split, StateSource source)
         {
             var b = bool.Parse(split.Value);
             return new Set(split.Key, b, source);

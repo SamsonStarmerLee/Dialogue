@@ -7,5 +7,6 @@
         Memory,
         World,
         Target,
+        Custom,
     }
 }

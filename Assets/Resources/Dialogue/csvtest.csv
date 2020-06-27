@@ -1,0 +1,27 @@
+﻿Concept,Who,Response,Criteria,Remember
+SeeObject,Player,Oh look! A barrel!,"eTargetName=Barrel
+eTargetSeen=false
+mSeenBarrels=0","mSeenBarrels+1
+tTargetSeen=true"
+SeeObject,Player,Another barrel.,"eTargetName=Barrel
+eTargetSeen=false
+mSeenBarrels=1","mSeenBarrels+1
+tTargetSeen=true"
+SeeObject,Player,"Man, there's a lot of barrels around here.","eTargetName=Barrel
+eTargetSeen=false
+mSeenBarrels=2","mSeenBarrels+1
+tTargetSeen=true"
+SeeObject,Player,Yet another barrel!,"eTargetName=Barrel
+eTargetSeen=false
+mSeenBarrels>2","mSeenBarrels+1
+tTargetSeen=true"
+SeeObject,Player,And another barrel...,"eTargetName=Barrel
+eTargetSeen=false
+mSeenBarrels>2","mSeenBarrels+1
+tTargetSeen=true"
+SeeObject,Player,One more barrel to add to the list.,"eTargetName=Barrel
+eTargetSeen=false
+mSeenBarrels>2","mSeenBarrels+1
+tTargetSeen=true"
+,,,,
+,,,,
