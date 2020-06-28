@@ -16,6 +16,10 @@ namespace Criteria
             !query.Get<bool>("TargetSeen", StateSource.Event, out var seen) || !seen;
     }
 
+    //DontEcho
+    //OneShot
+    //RefireCooldown
+
     #endregion
 
     #region Generic Comparison Criteria

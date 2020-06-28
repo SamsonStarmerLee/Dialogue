@@ -8,8 +8,8 @@ namespace Remember
     }
 
     #region Custom Manipulations
-
-    // Stuff goes here 
+    
+    // Custom rememberers go here.
 
     #endregion
 

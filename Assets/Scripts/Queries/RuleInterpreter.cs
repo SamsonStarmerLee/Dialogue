@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Assets.Scripts.Queries.Subtitles;
 using Criteria;
 using System.Linq;
 using Remember;
@@ -11,15 +10,24 @@ using System.Globalization;
 
 using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Assets.Scripts.Queries.Rule>>;
 
-// TODO: Explain how to write a rule
 // TODO: Explain why checked values populate memory.
 
 // Reserved words and characters:
-// Operators: '+', '-', '=', '*', '/', '>', '<', '!'
-// Words: 'timestamp', 'true', 'false'
-// Floating point: '.'
-// Target is shorthand
-// We don't allow criteria on 'Target' because that would attach memory to everything we look at
+
+// Criteria Values
+// 'true', 'false' refer to the boolean states.
+// Any value containing a '.' indicates a float
+
+// Remember Values
+// Events like SeeObject include a 'Target', the memory of this target object is accessed with this same code.
+// We don't allow criteria on 'Target' because that would attach memory to everything we look at.
+
+// Either
+// All the used operators: '+', '-', '=', '*', '/', '>', '<', '!'
+// 'Rule' populates with the Id of the current rule.
+// 'Timestamp' populates the current time.
+
+// Character-sourced key 'RecentRules' reserved for an ordered list of successful rule ids.
 
 // TODO: Right now, custom criteria/remememberers are found using reflection, making them slow to do many times. 
 // Perhaps replace with a dictionary or something.
@@ -28,10 +36,12 @@ namespace Assets.Scripts.Queries
 {
     sealed class RuleInterpreter
     {
-        static readonly string[] dividers = { Environment.NewLine, "\r\n", "\n" };
+        static readonly string[] Dividers = { Environment.NewLine, "\r\n", "\n" };
 
         sealed class RuleFixture
         {
+            public int Id { get; set; }
+
             public string Concept { get; set; }
             
             public string Who { get; set; }
@@ -41,6 +51,8 @@ namespace Assets.Scripts.Queries
             public string Criteria { get; set; }
 
             public string Remember { get; set; }
+
+            public float? Cooldown { get; set; }
         }
 
         public static RuleMap Interpret()
@@ -55,8 +67,9 @@ namespace Assets.Scripts.Queries
 
                 foreach (var fixture in fixtures)
                 {
-                    var criteria = ParseCriteriaCodes(fixture.Criteria);
-                    var remember = ParseRemembererCodes(fixture.Remember);
+                    var id = fixture.Id;
+                    var criteria = ParseCriteriaCodes(id, fixture.Criteria);
+                    var remember = ParseRemembererCodes(id, fixture.Remember);
 
                     var ruleKey = (fixture.Concept, fixture.Who);
                     if (!ruleMap.ContainsKey(ruleKey))
@@ -65,10 +78,12 @@ namespace Assets.Scripts.Queries
                         toOrganize.Add(ruleMap[ruleKey]);
                     }
 
-                    ruleMap[ruleKey].Add(new GeneratedRule(
-                        criteria.ToArray(),
-                        remember.ToArray(),
-                        fixture.Response));
+                    ruleMap[ruleKey].Add(new Rule(
+                        id, 
+                        criteria, 
+                        remember, 
+                        fixture.Response,
+                        fixture.Cooldown));
                 }
             }
 
@@ -82,7 +97,7 @@ namespace Assets.Scripts.Queries
             return ruleMap;
         }
 
-        private static IEnumerable<ICriterion> ParseCriteriaCodes(string criteria)
+        private static IEnumerable<ICriterion> ParseCriteriaCodes(int id, string criteria)
         {
             if (string.IsNullOrWhiteSpace(criteria))
             {
@@ -90,11 +105,11 @@ namespace Assets.Scripts.Queries
             }
 
             return criteria
-                .Split(dividers, StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => InterpretCriteriaCode(x));
+                .Split(Dividers, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => InterpretCriteriaCode(id, x));
         }
 
-        private static IEnumerable<IRememberer> ParseRemembererCodes(string rememberers)
+        private static IEnumerable<IRememberer> ParseRemembererCodes(int id, string rememberers)
         {
             if (string.IsNullOrWhiteSpace(rememberers))
             {
@@ -102,8 +117,8 @@ namespace Assets.Scripts.Queries
             }
 
             return rememberers
-                .Split(dividers, StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => InterpretRememberCode(x));
+                .Split(Dividers, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => InterpretRememberCode(id, x));
         }
 
         struct RuleSplit
@@ -114,7 +129,17 @@ namespace Assets.Scripts.Queries
             public string Value;
         }
 
-        private static bool SplitOnOperator(string raw, out RuleSplit split, params char[] operators)
+        static readonly Dictionary<char, StateSource> SourceCodes = new Dictionary<char, StateSource>()
+        {
+            { 'e', StateSource.Event },
+            { 'c', StateSource.Character },
+            { 'm', StateSource.Memory },
+            { 'w', StateSource.World },
+            { 't', StateSource.Target },
+            { '@', StateSource.Custom },
+        };
+
+        private static bool SplitOnOperator(int id, string raw, out RuleSplit split, params char[] operators)
         {
             var index = raw.IndexOfAny(operators);
             if (index == -1)
@@ -123,22 +148,30 @@ namespace Assets.Scripts.Queries
                 return false;
             }
 
-            var sourceCodes = new Dictionary<char, StateSource>() 
+            var source = SourceCodes[raw[0]];
+            var key = raw.Substring(1, index - 1);
+            var op = raw[index];
+            var value = raw.Substring(index + 1);
+
+            // Handle reserved words/characters
             {
-                { 'e', StateSource.Event },
-                { 'c', StateSource.Character },
-                { 'm', StateSource.Memory },
-                { 'w', StateSource.World },
-                { 't', StateSource.Target },
-                { '*', StateSource.Custom },
-            };
+                if (value.ToLowerInvariant() == "timestamp")
+                {
+                    value = Time.time.ToString();
+                } 
+
+                if (value.ToLowerInvariant() == "rule")
+                {
+                    value = id.ToString();
+                }
+            }
 
             split = new RuleSplit
             {
-                Source = sourceCodes[raw[0]],
-                Key = raw.Substring(1, index - 1),
-                Operator = raw[index],
-                Value = raw.Substring(index + 1)
+                Source = source,
+                Key = key,
+                Operator = op,
+                Value = value,
             };
 
             return true;
@@ -146,9 +179,9 @@ namespace Assets.Scripts.Queries
 
         #region Is Operators
 
-        private static ICriterion InterpretCriteriaCode(string code)
+        private static ICriterion InterpretCriteriaCode(int id, string code)
         {
-            if (SplitOnOperator(code, out var split, '=', '>', '<', '!'))
+            if (SplitOnOperator(id, code, out var split, '=', '>', '<', '!'))
             {
                 if (split.Source == StateSource.Custom)
                 {
@@ -159,7 +192,6 @@ namespace Assets.Scripts.Queries
                 var key = split.Key;
                 var value = split.Value;
                 var op = split.Operator;
-
 
                 // Check for bool
                 // NOTE: Because of this, 'true' and 'false' are reserved strings.
@@ -172,7 +204,7 @@ namespace Assets.Scripts.Queries
                 // Any value containing a decimal is a float check.
                 else if (value.Contains('.'))
                 {
-                        return IsFloat(split, source);
+                    return IsFloat(split, source);
                 }
 
                 // A value containing all digits is an int check.
@@ -256,9 +288,9 @@ namespace Assets.Scripts.Queries
 
         #region Set Operators
 
-        private static IRememberer InterpretRememberCode(string code)
+        private static IRememberer InterpretRememberCode(int id, string code)
         {
-            if (SplitOnOperator(code, out var split, '=', '-', '+', '*', '/'))
+            if (SplitOnOperator(id, code, out var split, '=', '-', '+', '*', '/'))
             {
                 if (split.Source == StateSource.Custom)
                 {
@@ -270,34 +302,34 @@ namespace Assets.Scripts.Queries
                 var value = split.Value;
                 var op = split.Operator;
 
-                /// Bool assignment.
-                /// NOTE: Because of this, 'true' and 'false' are reserved strings.
+                // Bool assignment.
+                // NOTE: Because of this, 'true' and 'false' are reserved strings.
                 if (op == '=' && value == "true" || value == "false")
                 {
                     return SetBool(split, source);
                 }
 
-                /// Check for a number 
-                /// Any value containing a decimal is a float manipulation.
+                // Check for a number 
+                // Any value containing a decimal is a float manipulation.
                 else if (value.Contains('.'))
                 {
                     return SetFloat(split, source);
                 }
 
-                /// A value containing all digits is an int manipulation.
+                // A value containing all digits is an int manipulation.
                 else if (value.All(char.IsDigit))
                 {
                     return SetInt(split, source);
                 }
 
-                /// String assignment.
+                // String assignment.
                 else if (op == '=')
                 {
                     return new Set(split.Key, split.Value, source);
                 }
             }
 
-            /// Failed to interpret.
+            // Failed to interpret.
             Debug.LogError($"Failed to interpret criteria: {code}.");
             return null;
         }
@@ -328,16 +360,7 @@ namespace Assets.Scripts.Queries
 
         private static IRememberer SetFloat(RuleSplit split, StateSource source)
         {
-            float f;
-
-            if (split.Value.ToLowerInvariant() == "timestamp")
-            {
-                f = Time.time;
-            }
-            else
-            {
-                f = float.Parse(split.Value);
-            }
+            var f = float.Parse(split.Value);
 
             switch (split.Operator)
             {
@@ -378,94 +401,4 @@ namespace Assets.Scripts.Queries
 
         #endregion
     }
-
-    sealed class GeneratedRule : Rule
-    {
-        private readonly ICriterion[] criteria;
-        private readonly IRememberer[] rememberers;
-        private readonly string response;
-
-        public GeneratedRule(
-            ICriterion[] criteria, 
-            IRememberer[] rememberers, 
-            string response)
-        {
-            this.criteria = criteria;
-            this.rememberers = rememberers;
-            this.response = response;
-        }
-
-        public override ICriterion[] Criteria => criteria;
-
-        public override IRememberer[] Rememberers => rememberers;
-
-        public override void Response(Query query)
-        {
-            query.Get<Color>("SubtitleColor", StateSource.Character, out var color);
-
-            var subtitle = new SubtitleRequest()
-            {
-                Speaker = query.Who,
-                Text = response,
-                Color = color
-            };
-
-            // TEMP
-            var subtitleManager = GameObject.FindObjectOfType<SubtitleManager>();
-            subtitleManager.DisplaySubtitle(subtitle);
-        }
-    }
 }
-
-
-
-
-
-
-//const string ruleJson = @"
-//            [
-//                  {
-//                        ""Concept"": ""SeeObject"",
-//                        ""Who"": ""Player"",
-//                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
-//                        ""CharacterCriteria"": """",
-//                        ""MemoryCriteria"": ""isSeenBarrels=0"",
-//                        ""WorldCriteria"": """",
-//                        ""Response"": ""Oh look! A barrel!"",
-//                        ""RememberMemory"": ""RememberBarrel"",
-//                        ""RememberWorld"": """"
-//                  },
-//                  {
-//                        ""Concept"": ""SeeObject"",
-//                        ""Who"": ""Player"",
-//                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
-//                        ""CharacterCriteria"": """",
-//                        ""MemoryCriteria"": ""isSeenBarrels=1"",
-//                        ""WorldCriteria"": """",
-//                        ""Response"": ""A second barrel... how curious."",
-//                        ""RememberMemory"": ""RememberBarrel"",
-//                        ""RememberWorld"": """"
-//                  },
-//                  {
-//                        ""Concept"": ""SeeObject"",
-//                        ""Who"": ""Player"",
-//                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
-//                        ""CharacterCriteria"": """",
-//                        ""MemoryCriteria"": ""isSeenBarrels=2"",
-//                        ""WorldCriteria"": """",
-//                        ""Response"": ""A <i>third</i> barrel?! Surely not!"",
-//                        ""RememberMemory"": ""RememberBarrel"",
-//                        ""RememberWorld"": """"
-//                  },
-//                  {
-//                        ""Concept"": ""SeeObject"",
-//                        ""Who"": ""Player"",
-//                        ""EventCriteria"": ""isTargetName=Barrel, TargetNotSeen"",
-//                        ""CharacterCriteria"": """",
-//                        ""MemoryCriteria"": ""isSeenBarrels>2"",
-//                        ""WorldCriteria"": """",
-//                        ""Response"": ""More barrels."",
-//                        ""RememberMemory"": ""RememberBarrel"",
-//                        ""RememberWorld"": """"
-//                  },
-//            ]";

@@ -12,6 +12,7 @@ namespace Assets.Scripts
         [SerializeField] private Color subtitleColor;
 
         private RuleMap rules;
+        private List<Rule> oneshots;
         private float timeOfLastInspection;
 
         public Dictionary<string, object> Memory { get; } = new Dictionary<string, object>();
@@ -19,6 +20,7 @@ namespace Assets.Scripts
         private void Start()
         {
             rules = RuleInterpreter.Interpret();
+            oneshots = new List<Rule>();
         }
 
         private void Update()
@@ -51,9 +53,14 @@ namespace Assets.Scripts
 
                     var character = GenerateCharacterState();
 
-                    QueryManager
-                        .Instance
-                        .Announce("SeeObject", "Player", @event, character, Memory, rules);
+                    QueryManager.Instance.Announce(
+                        "SeeObject", 
+                        "Player", 
+                        @event, 
+                        character, 
+                        Memory, 
+                        rules, 
+                        oneshots);
                 }
             }
         }

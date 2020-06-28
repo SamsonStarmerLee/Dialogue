@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts.Queries;
+using Framework.Maths;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,24 +18,27 @@ namespace Dialogue
         // - all actors (including self)
 
         /// <summary>
-        /// Generates and sends a query to a specific character.
+        /// Searches for a rule matching the given scenario, executing its response.
         /// </summary>
-        // TODO: Get rules from character or something rather than pass in.
         public void Announce(
             string concept,
             string who,
             Dictionary<string, object> @event,
             Dictionary<string, object> character,
             Dictionary<string, object> memory, 
-            RuleMap rules)
+            RuleMap rules,
+            List<Rule> oneshots)
         {
-            var world = GenerateWorldMemory();
+            var world = GetWorldMemory();
             var query = new Query(concept, who, @event, character, memory, world);
 
-            HandleQuery(query, rules);
+            HandleQuery(query, rules, oneshots);
         }
 
-        private void HandleQuery(Query query, RuleMap rulesMap)
+        private void HandleQuery(
+            Query query, 
+            RuleMap rulesMap,
+            List<Rule> oneshots)
         {
             if (!rulesMap.ContainsKey((query.Concept, query.Who)))
             {
@@ -54,7 +58,13 @@ namespace Dialogue
                     break;
                 }
 
-                else if (rule.Evaluate(query))
+                if (rule.Triggered && !Utility.Elapsed(rule.TriggerTimeStamp, rule.Cooldown))
+                {
+                    // Skip rules on cooldown.
+                    continue;
+                }
+
+                if (rule.Evaluate(query))
                 {
                     passes.Add(rule);
                     numCriteria = rule.NumCriteria;
@@ -69,11 +79,18 @@ namespace Dialogue
 
                 rule.Response(query);
                 rule.Remember(query);
+
+                if (rule.OneShot)
+                {
+                    // Remove oneshot rules from the rulemap.
+                    rules.Remove(rule);
+                    oneshots.Add(rule);
+                }
             }
         }
 
         // TODO: Have actual world memory come from somewhere.
-        private Dictionary<string, object> GenerateWorldMemory()
+        private Dictionary<string, object> GetWorldMemory()
         {
             return new Dictionary<string, object>()
             {

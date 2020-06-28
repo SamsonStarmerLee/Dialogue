@@ -1,27 +1,29 @@
-﻿Concept,Who,Response,Criteria,Remember
-SeeObject,Player,Oh look! A barrel!,"eTargetName=Barrel
+﻿Id,Concept,Who,Response,Criteria,Remember,Cooldown
+1,SeeObject,Player,Oh look! A barrel!,"eTargetName=Barrel
 eTargetSeen=false
 mSeenBarrels=0","mSeenBarrels+1
-tTargetSeen=true"
-SeeObject,Player,Another barrel.,"eTargetName=Barrel
+tTargetSeen=true",
+2,SeeObject,Player,Another barrel.,"eTargetName=Barrel
 eTargetSeen=false
 mSeenBarrels=1","mSeenBarrels+1
-tTargetSeen=true"
-SeeObject,Player,"Man, there's a lot of barrels around here.","eTargetName=Barrel
+tTargetSeen=true",
+3,SeeObject,Player,"Man, there's a lot of barrels around here.","eTargetName=Barrel
 eTargetSeen=false
 mSeenBarrels=2","mSeenBarrels+1
-tTargetSeen=true"
-SeeObject,Player,Yet another barrel!,"eTargetName=Barrel
+tTargetSeen=true",
+4,SeeObject,Player,Yet another barrel!,"eTargetName=Barrel
+eTargetSeen=false,
+mSeenBarrels>2","mSeenBarrels+1
+tTargetSeen=true",10.0
+5,SeeObject,Player,And another barrel...,"eTargetName=Barrel
 eTargetSeen=false
 mSeenBarrels>2","mSeenBarrels+1
-tTargetSeen=true"
-SeeObject,Player,And another barrel...,"eTargetName=Barrel
+tTargetSeen=true",10.0
+6,SeeObject,Player,One more barrel to add to the list.,"eTargetName=Barrel
 eTargetSeen=false
 mSeenBarrels>2","mSeenBarrels+1
-tTargetSeen=true"
-SeeObject,Player,One more barrel to add to the list.,"eTargetName=Barrel
-eTargetSeen=false
-mSeenBarrels>2","mSeenBarrels+1
-tTargetSeen=true"
-,,,,
-,,,,
+tTargetSeen=true",10.0
+7,,,,,,
+8,,,,,,
+9,,,,,,
+10,,,,,,
