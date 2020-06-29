@@ -12,7 +12,7 @@ eTargetSeen=false
 mSeenBarrels=2","mSeenBarrels+1
 tTargetSeen=true",
 4,SeeObject,Player,Yet another barrel!,"eTargetName=Barrel
-eTargetSeen=false,
+eTargetSeen=false
 mSeenBarrels>2","mSeenBarrels+1
 tTargetSeen=true",10.0
 5,SeeObject,Player,And another barrel...,"eTargetName=Barrel
@@ -23,7 +23,5 @@ tTargetSeen=true",10.0
 eTargetSeen=false
 mSeenBarrels>2","mSeenBarrels+1
 tTargetSeen=true",10.0
-7,,,,,,
-8,,,,,,
-9,,,,,,
-10,,,,,,
+11,SeeObject,Player,What a big barrel!,"eTargetName=BigBarrel
+eTargetSeen=false",tTargetSeen=true,
