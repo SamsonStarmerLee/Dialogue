@@ -16,7 +16,7 @@ namespace Assets.Scripts.Queries
         public Rule(
             int id,
             IEnumerable<ICriterion> criteria, 
-            IEnumerable<IRememberer> rememberers, 
+            IEnumerable<Rememberer> rememberers, 
             string response,
             float? cooldown)
         {
@@ -39,7 +39,7 @@ namespace Assets.Scripts.Queries
 
         public IReadOnlyList<ICriterion> Criteria { get; }
 
-        public IReadOnlyList<IRememberer> Rememberers { get; }
+        public IReadOnlyList<Rememberer> Rememberers { get; }
 
         public int NumCriteria => Criteria.Count;
 
@@ -81,7 +81,7 @@ namespace Assets.Scripts.Queries
         {
             foreach (var rememberer in Rememberers)
             {
-                rememberer.Apply(query);
+                rememberer.Invoke(query);
             }
 
             Triggered = true;

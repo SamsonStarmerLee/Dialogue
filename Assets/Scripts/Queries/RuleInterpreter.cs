@@ -109,11 +109,11 @@ namespace Assets.Scripts.Queries
                 .Select(x => InterpretCriteriaCode(id, x));
         }
 
-        private static IEnumerable<IRememberer> ParseRemembererCodes(int id, string rememberers)
+        private static IEnumerable<Rememberer> ParseRemembererCodes(int id, string rememberers)
         {
             if (string.IsNullOrWhiteSpace(rememberers))
             {
-                return Enumerable.Empty<IRememberer>();
+                return Enumerable.Empty<Rememberer>();
             }
 
             return rememberers
@@ -288,7 +288,7 @@ namespace Assets.Scripts.Queries
 
         #region Set Operators
 
-        private static IRememberer InterpretRememberCode(int id, string code)
+        private static Rememberer InterpretRememberCode(int id, string code)
         {
             if (SplitOnOperator(id, code, out var split, '=', '-', '+', '*', '/'))
             {
@@ -325,7 +325,8 @@ namespace Assets.Scripts.Queries
                 // String assignment.
                 else if (op == '=')
                 {
-                    return new Set(split.Key, split.Value, source);
+                    return (query) => 
+                        Rememberers.Set(query, split.Key, split.Value, source);
                 }
             }
 
@@ -334,18 +335,18 @@ namespace Assets.Scripts.Queries
             return null;
         }
 
-        private static IRememberer SetInt(RuleSplit split, StateSource source)
+        private static Rememberer SetInt(RuleSplit split, StateSource source)
         {
-            var i = int.Parse(split.Value);
+            var @int = int.Parse(split.Value);
 
             switch (split.Operator)
             {
                 case '=':
-                    return new Set(split.Key, i, source);
+                    return (query) => Rememberers.Set(query, split.Key, @int, source);
                 case '-':
-                    return new SubtractInt(split.Key, i, source);
+                    return (query) => Rememberers.SubtractInt(query, split.Key, @int, source);
                 case '+':
-                    return new AddInt(split.Key, i, source);
+                    return (query) => Rememberers.AddInt(query, split.Key, @int, source);
                 case '*':
                     Debug.LogError($"Integer multiplication not supported: {split}. Add a decimal.");
                     return null;
@@ -358,45 +359,38 @@ namespace Assets.Scripts.Queries
             }
         }
 
-        private static IRememberer SetFloat(RuleSplit split, StateSource source)
+        private static Rememberer SetFloat(RuleSplit split, StateSource source)
         {
-            var f = float.Parse(split.Value);
+            var @float = float.Parse(split.Value);
 
             switch (split.Operator)
             {
                 case '=':
-                    return new Set(split.Key, f, source);
+                    return (query) => Rememberers.Set(query, split.Key, @float, source);
                 case '-':
-                    return new SubtractFloat(split.Key, f, source);
+                    return (query) => Rememberers.SubtractFloat(query, split.Key, @float, source);
                 case '+':
-                    return new AddFloat(split.Key, f, source);
+                    return (query) => Rememberers.AddFloat(query, split.Key, @float, source);
                 case '*':
-                    return new MultiplyFloat(split.Key, f, source);
+                    return (query) => Rememberers.MultiplyFloat(query, split.Key, @float, source);
                 case '/':
-                    return new DivideFloat(split.Key, f, source);
+                    return (query) => Rememberers.DivideFloat(query, split.Key, @float, source);
                 default:
                     Debug.LogError($"Couldn't interpret criteria as float operation: {split}.");
                     return null;
             }
         }
 
-        private static IRememberer SetBool(RuleSplit split, StateSource source)
+        private static Rememberer SetBool(RuleSplit split, StateSource source)
         {
-            var b = bool.Parse(split.Value);
-            return new Set(split.Key, b, source);
+            var @bool = bool.Parse(split.Value);
+            return (query) => Rememberers.Set(query, split.Key, @bool, source);
         }
 
-        private static IRememberer CustomRemember(string code)
+        private static Rememberer CustomRemember(string code)
         {
-            var type = Type.GetType($"Remember.{code}");
-
-            if (type == null)
-            {
-                Debug.LogError($"Failed to find memory class for: {code}.");
-                return null;
-            }
-
-            return (IRememberer)Activator.CreateInstance(type);
+            // TODO
+            return null;
         }
 
         #endregion
