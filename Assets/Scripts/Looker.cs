@@ -1,5 +1,5 @@
 ﻿using Assets.Scripts.Notifications;
-using Dialogue;
+using Queries;
 using System.Collections.Generic;
 using UnityEngine;
 

@@ -1,13 +1,10 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using Assets.Scripts.Queries.Subtitles;
-using Criteria;
 using System.Linq;
-using Remember;
-using Framework.Maths;
 using Assets.Scripts.Notifications;
 
-namespace Assets.Scripts.Queries
+namespace Queries
 {
     sealed class Rule
     {
@@ -15,7 +12,7 @@ namespace Assets.Scripts.Queries
 
         public Rule(
             int id,
-            IEnumerable<ICriterion> criteria, 
+            IEnumerable<Criterion> criteria, 
             IEnumerable<Rememberer> rememberers, 
             string response,
             float? cooldown)
@@ -37,7 +34,7 @@ namespace Assets.Scripts.Queries
         /// </summary>
         public float Cooldown { get; }
 
-        public IReadOnlyList<ICriterion> Criteria { get; }
+        public IReadOnlyList<Criterion> Criteria { get; }
 
         public IReadOnlyList<Rememberer> Rememberers { get; }
 
@@ -65,7 +62,7 @@ namespace Assets.Scripts.Queries
         {
             foreach (var c in Criteria)
             {
-                if (!c.Eval(query))
+                if (!c.Invoke(query))
                 {
                     return false;
                 }

@@ -1,13 +1,11 @@
 ﻿using Assets.Scripts.Notifications;
-using Assets.Scripts.Queries;
 using Framework.Maths;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Assets.Scripts.Queries.Rule>>;
+using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Queries.Rule>>;
 
-namespace Dialogue
+namespace Queries
 {
     public sealed class QueryArgs
     {

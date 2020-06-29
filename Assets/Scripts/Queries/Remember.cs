@@ -1,7 +1,8 @@
 ﻿using Assets.Scripts;
+using Queries;
 using System.Security.Permissions;
 
-namespace Remember
+namespace Queries
 {
     delegate void Rememberer(Query query);
 

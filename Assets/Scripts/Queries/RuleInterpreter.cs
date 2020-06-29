@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Criteria;
 using System.Linq;
-using Remember;
 using System.IO;
 using CsvHelper;
 using System.Globalization;
 
-using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Assets.Scripts.Queries.Rule>>;
+using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Queries.Rule>>;
 
 // TODO: Explain why checked values populate memory.
 
@@ -32,7 +30,7 @@ using RuleMap = System.Collections.Generic.Dictionary<(string concept, string wh
 // TODO: Right now, custom criteria/remememberers are found using reflection, making them slow to do many times. 
 // Perhaps replace with a dictionary or something.
 
-namespace Assets.Scripts.Queries
+namespace Queries
 {
     sealed class RuleInterpreter
     {
@@ -97,11 +95,11 @@ namespace Assets.Scripts.Queries
             return ruleMap;
         }
 
-        private static IEnumerable<ICriterion> ParseCriteriaCodes(int id, string criteria)
+        private static IEnumerable<Criterion> ParseCriteriaCodes(int id, string criteria)
         {
             if (string.IsNullOrWhiteSpace(criteria))
             {
-                return Enumerable.Empty<ICriterion>();
+                return Enumerable.Empty<Criterion>();
             }
 
             return criteria
@@ -136,7 +134,7 @@ namespace Assets.Scripts.Queries
             { 'm', StateSource.Memory },
             { 'w', StateSource.World },
             { 't', StateSource.Target },
-            { '@', StateSource.Custom },
+            //{ '@', StateSource.Custom }, // TODO
         };
 
         private static bool SplitOnOperator(int id, string raw, out RuleSplit split, params char[] operators)
@@ -179,15 +177,10 @@ namespace Assets.Scripts.Queries
 
         #region Is Operators
 
-        private static ICriterion InterpretCriteriaCode(int id, string code)
+        private static Criterion InterpretCriteriaCode(int id, string code)
         {
             if (SplitOnOperator(id, code, out var split, '=', '>', '<', '!'))
             {
-                if (split.Source == StateSource.Custom)
-                {
-                    return CustomCriteria(code);
-                }
-
                 var source = split.Source;
                 var key = split.Key;
                 var value = split.Value;
@@ -216,7 +209,7 @@ namespace Assets.Scripts.Queries
                 // String comparison.
                 else if (op == '=')
                 {
-                    return new IsEqual<string>(split.Key, split.Value, source);
+                    return (query) => Criteria.Equal(query, split.Key, split.Value, source);
                 }
             }
 
@@ -225,63 +218,50 @@ namespace Assets.Scripts.Queries
             return null;
         }
 
-        private static ICriterion IsInt(RuleSplit split, StateSource source)
+        private static Criterion IsInt(RuleSplit split, StateSource source)
         {
             var i = int.Parse(split.Value);
 
             switch (split.Operator)
             {
                 case '=':
-                    return new IsEqual<int>(split.Key, i, source);
+                    return (query) => Criteria.Equal(query, split.Key, i, source);
                 case '>':
-                    return new IsGreater<int>(split.Key, i, source);
+                    return (query) => Criteria.GreaterThan(query, split.Key, i, source);
                 case '<':
-                    return new IsLess<int>(split.Key, i, source);
+                    return (query) => Criteria.LessThan(query, split.Key, i, source);
                 case '!':
-                    return new IsNotEqual<int>(split.Key, i, source);
+                    return (query) => !Criteria.Equal(query, split.Key, i, source);
                 default:
                     Debug.LogError($"Couldn't interpret criteria as int operation: {split.Key}, {split.Operator}, {split.Value}.");
                     return null;
             }
         }
 
-        private static ICriterion IsFloat(RuleSplit split, StateSource source)
+        private static Criterion IsFloat(RuleSplit split, StateSource source)
         {
             var f = float.Parse(split.Value);
 
             switch (split.Operator)
             {
                 case '=':
-                    return new IsEqual<float>(split.Key, f, source);
+                    return (query) => Criteria.Equal(query, split.Key, f, source);
                 case '>':
-                    return new IsGreater<float>(split.Key, f, source);
+                    return (query) => Criteria.GreaterThan(query, split.Key, f, source);
                 case '<':
-                    return new IsLess<float>(split.Key, f, source);
+                    return (query) => Criteria.LessThan(query, split.Key, f, source);
                 case '!':
-                    return new IsNotEqual<float>(split.Key, f, source);
+                    return (query) => !Criteria.Equal(query, split.Key, f, source);
                 default:
                     Debug.LogError($"Couldn't interpret criteria as float operation: {split.Key}, {split.Operator}, {split.Value}.");
                     return null;
             }
         }
 
-        private static ICriterion IsBool(RuleSplit split, StateSource source)
+        private static Criterion IsBool(RuleSplit split, StateSource source)
         {
-            var b = bool.Parse(split.Value);
-            return new IsEqual<bool>(split.Key, b, source);
-        }
-
-        private static ICriterion CustomCriteria(string code)
-        {
-            var type = Type.GetType($"Criteria.{code}");
-
-            if (type == null)
-            {
-                Debug.LogError($"Failed to find criteria class for: {code}.");
-                return null;
-            }
-
-            return (ICriterion)Activator.CreateInstance(type);
+            var @bool = bool.Parse(split.Value);
+            return (query) => Criteria.Equal(query, split.Key, @bool, source);
         }
 
         #endregion

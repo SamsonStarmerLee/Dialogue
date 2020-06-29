@@ -1,72 +1,35 @@
 ﻿using Assets.Scripts;
 using System;
 
-namespace Criteria
+namespace Queries
 {
-    interface ICriterion
+    delegate bool Criterion(Query query);
+
+    static class Criteria
     {
-        bool Eval(Query query);
-    }
+        #region Generic Comparison Criteria
 
-    #region Custom Criteria
-
-    sealed class TargetNotSeen : ICriterion
-    {
-        public bool Eval(Query query) =>
-            !query.Get<bool>("TargetSeen", StateSource.Event, out var seen) || !seen;
-    }
-
-    #endregion
-
-    #region Generic Comparison Criteria
-
-    abstract class GenericCriterion<T> : ICriterion
-    {
-        protected readonly string key;
-        protected readonly T value;
-        protected readonly StateSource source;
-
-        protected GenericCriterion(string key, T value, StateSource source)
+        public static bool Equal<T>(Query query, string key, T value, StateSource source) where T : IEquatable<T>
         {
-            this.key = key;
-            this.value = value;
-            this.source = source;
+            return 
+                query.Get<T>(key, source, out var current) && 
+                current.Equals(value);
         }
 
-        public abstract bool Eval(Query query);
+        public static bool GreaterThan<T>(Query query, string key, T value, StateSource source) where T : IComparable<T>
+        {
+            return 
+                query.Get<T>(key, source, out var current) && 
+                current.CompareTo(value) > 0;
+        }
+
+        public static bool LessThan<T>(Query query, string key, T value, StateSource source) where T : IComparable<T>
+        {
+            return
+                query.Get<T>(key, source, out var current) &&
+                current.CompareTo(value) < 0;
+        }
+
+        #endregion
     }
-
-    sealed class IsEqual<T> : GenericCriterion<T> where T : IEquatable<T>
-    {
-        public IsEqual(string key, T value, StateSource source) : base(key, value, source) { }
-
-        public override bool Eval(Query query) => 
-            query.Get<T>(key, source, out var current) && current.Equals(value);
-    }
-
-    sealed class IsNotEqual<T> : GenericCriterion<T> where T : IEquatable<T>
-    {
-        public IsNotEqual(string key, T value, StateSource source) : base(key, value, source) { }
-
-        public override bool Eval(Query query) =>
-            !query.Get<T>(key, source, out var current) || !current.Equals(value);
-    }
-
-    sealed class IsGreater<T> : GenericCriterion<T> where T : IComparable<T>
-    {
-        public IsGreater(string key, T value, StateSource source) : base(key, value, source) { }
-
-        public override bool Eval(Query query) =>
-            query.Get<T>(key, source, out var current) && current.CompareTo(value) > 0;
-    }
-
-    sealed class IsLess<T> : GenericCriterion<T> where T : IComparable<T>
-    {
-        public IsLess(string key, T value, StateSource source) : base(key, value, source) { }
-
-        public override bool Eval(Query query) =>
-            query.Get<T>(key, source, out var current) && current.CompareTo(value) < 0;
-    }
-
-    #endregion
 }
