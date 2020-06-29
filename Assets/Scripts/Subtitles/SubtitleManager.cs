@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Assets.Scripts.Notifications;
+using System;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -15,13 +17,27 @@ namespace Assets.Scripts.Queries.Subtitles
         [SerializeField] private GameObject subtitlePrefab;
         [SerializeField] private Transform letterbox;
 
-        // TODO: Clear this at some point.
         /// <summary>
         /// This dictionary contains character names and the last time they spoke.
         /// </summary>
         private readonly Dictionary<string, float> speakerHistory = new Dictionary<string, float>();
 
         private readonly List<ActiveSubtitle> activeSubtitles = new List<ActiveSubtitle>();
+
+        private void OnEnable()
+        {
+            this.AddObserver(OnDialogue, Notify.Action<SubtitleArgs>());
+        }
+
+        private void OnDisable()
+        {
+            this.RemoveObserver(OnDialogue, Notify.Action<SubtitleArgs>());
+        }
+
+        private void OnDialogue(object sender, object args)
+        {
+            DisplaySubtitle(args as SubtitleArgs);
+        }
 
         private void Update()
         {
@@ -66,7 +82,7 @@ namespace Assets.Scripts.Queries.Subtitles
             }
         }
 
-        public void DisplaySubtitle(SubtitleRequest subtitle)
+        private void DisplaySubtitle(SubtitleArgs subtitle)
         {
             if (string.IsNullOrWhiteSpace(subtitle.Speaker))
             {
@@ -102,11 +118,6 @@ namespace Assets.Scripts.Queries.Subtitles
             s.GetComponent<TMPro.TextMeshProUGUI>().text = text;
         }
 
-        public void ClearSpeakerHistory()
-        {
-            speakerHistory.Clear();
-        }
-
         private bool ShouldAppendSpeaker(string speaker)
         {
             if (speakerHistory.TryGetValue(speaker, out var timeOfLastSpeaking))
@@ -116,6 +127,11 @@ namespace Assets.Scripts.Queries.Subtitles
 
             // New character we haven't heard from before/recently.
             return true;
+        }
+
+        private void ClearSpeakerHistory()
+        {
+            speakerHistory.Clear();
         }
     }
 

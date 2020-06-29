@@ -5,6 +5,7 @@ using Criteria;
 using System.Linq;
 using Remember;
 using Framework.Maths;
+using Assets.Scripts.Notifications;
 
 namespace Assets.Scripts.Queries
 {
@@ -93,17 +94,8 @@ namespace Assets.Scripts.Queries
         public void Response(Query query)
         {
             query.Get<Color>("SubtitleColor", StateSource.Character, out var color);
-
-            var subtitle = new SubtitleRequest()
-            {
-                Speaker = query.Who,
-                Text = response,
-                Color = color
-            };
-
-            // TEMP
-            var subtitleManager = GameObject.FindObjectOfType<SubtitleManager>();
-            subtitleManager.DisplaySubtitle(subtitle);
+            var args = new SubtitleArgs(query.Who, response, color);
+            this.PostNotification(Notify.Action<SubtitleArgs>(), args);
         }
     }
 }
