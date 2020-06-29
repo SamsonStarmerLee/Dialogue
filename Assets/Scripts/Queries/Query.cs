@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts;
+using Dialogue;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -40,18 +41,14 @@ sealed class Query
     private readonly Dictionary<string, object> world;
 
     public Query(
-        string concept,
-        string who,
-        Dictionary<string, object> @event,
-        Dictionary<string, object> character,
-        Dictionary<string, object> memory,
+        QueryArgs args,
         Dictionary<string, object> world)
     {
-        Concept = concept;
-        Who = who;
-        this.@event = @event;
-        this.character = character;
-        this.memory = memory;
+        Concept = args.Concept;
+        Who = args.Who;
+        @event = args.Event;
+        character = args.Character;
+        memory = args.Memory;
         this.world = world;
     }
 

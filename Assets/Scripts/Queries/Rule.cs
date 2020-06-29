@@ -26,8 +26,14 @@ namespace Assets.Scripts.Queries
             Cooldown = cooldown ?? -1;
         }
 
+        /// <summary>
+        /// Unique Id to this rule.
+        /// </summary>
         public int Id { get; }
         
+        /// <summary>
+        /// The minimum required gap before this rule can re-fire.
+        /// </summary>
         public float Cooldown { get; }
 
         public IReadOnlyList<ICriterion> Criteria { get; }
@@ -36,10 +42,19 @@ namespace Assets.Scripts.Queries
 
         public int NumCriteria => Criteria.Count;
 
+        /// <summary>
+        /// Whether or not this rule can only fire once.
+        /// </summary>
         public bool OneShot => Cooldown == -1;
 
+        /// <summary>
+        /// Has this rule triggered once before?
+        /// </summary>
         public bool Triggered { get; private set; }
 
+        /// <summary>
+        /// If this rule has triggered, the timespan on when it did is recorded here.
+        /// </summary>
         public float TriggerTimeStamp { get; private set; }
 
         /// <summary>

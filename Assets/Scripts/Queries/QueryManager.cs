@@ -1,5 +1,7 @@
-﻿using Assets.Scripts.Queries;
+﻿using Assets.Scripts.Notifications;
+using Assets.Scripts.Queries;
 using Framework.Maths;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,32 +9,65 @@ using RuleMap = System.Collections.Generic.Dictionary<(string concept, string wh
 
 namespace Dialogue
 {
-    class QueryManager
+    public sealed class QueryArgs
     {
-        public static QueryManager Instance { get; } = new QueryManager();
+        public string Concept { get; }
+        public string Who { get; }
+        public Dictionary<string, object> Event { get; }
+        public Dictionary<string, object> Character { get; }
+        public Dictionary<string, object> Memory { get; }
 
-        // TODO (send query to many/specific actors).
-        // Valve defined speak targets as:
-        // - specific actors
-        // - any actor (other actors)
-        // - all actors (including self)
-
-        /// <summary>
-        /// Searches for a rule matching the given scenario, executing its response.
-        /// </summary>
-        public void Announce(
-            string concept,
-            string who,
-            Dictionary<string, object> @event,
-            Dictionary<string, object> character,
-            Dictionary<string, object> memory, 
-            RuleMap rules,
-            List<Rule> oneshots)
+        public QueryArgs(string concept, 
+            string who, 
+            Dictionary<string, object> @event, 
+            Dictionary<string, object> character, 
+            Dictionary<string, object> memory)
         {
-            var world = GetWorldMemory();
-            var query = new Query(concept, who, @event, character, memory, world);
+            Concept = concept;
+            Who = who;
+            Event = @event;
+            Character = character;
+            Memory = memory;
+        }
+    }
 
+    public sealed class QueryManager : MonoBehaviour
+    {
+        private RuleMap rules;
+        private List<Rule> oneshots;
+        private Dictionary<string, object> worldMemory;
+
+        private void Awake()
+        {
+            rules = RuleInterpreter.Interpret();
+            oneshots = new List<Rule>();
+
+            worldMemory = new Dictionary<string, object>()
+            {
+                { "Time", Time.deltaTime }
+            };
+        }
+
+        private void OnEnable()
+        {
+            this.AddObserver(OnQueryEvent, Notify.Action<QueryArgs>());
+        }
+
+        private void OnDisable()
+        {
+            this.RemoveObserver(OnQueryEvent, Notify.Action<QueryArgs>());
+        }
+
+        private void OnQueryEvent(object sender, object args)
+        {
+            UpdateWorldMemory();
+            var query = new Query(args as QueryArgs, worldMemory);
             HandleQuery(query, rules, oneshots);
+        }
+
+        private void UpdateWorldMemory()
+        {
+            worldMemory["Time"] = Time.deltaTime;
         }
 
         private void HandleQuery(
@@ -74,7 +109,7 @@ namespace Dialogue
             if (passes.Count > 0)
             {
                 // Select the rule to execute randomly.
-                var index = Random.Range(0, passes.Count);
+                var index = UnityEngine.Random.Range(0, passes.Count);
                 var rule = passes[index];
 
                 rule.Response(query);
@@ -87,15 +122,6 @@ namespace Dialogue
                     oneshots.Add(rule);
                 }
             }
-        }
-
-        // TODO: Have actual world memory come from somewhere.
-        private Dictionary<string, object> GetWorldMemory()
-        {
-            return new Dictionary<string, object>()
-            {
-                { "Time", Time.deltaTime }
-            };
         }
     }
 }

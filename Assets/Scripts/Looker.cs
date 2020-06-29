@@ -1,9 +1,7 @@
-﻿using Assets.Scripts.Queries;
+﻿using Assets.Scripts.Notifications;
 using Dialogue;
 using System.Collections.Generic;
 using UnityEngine;
-
-using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Assets.Scripts.Queries.Rule>>;
 
 namespace Assets.Scripts
 {
@@ -11,17 +9,9 @@ namespace Assets.Scripts
     {
         [SerializeField] private Color subtitleColor;
 
-        private RuleMap rules;
-        private List<Rule> oneshots;
         private float timeOfLastInspection;
 
         public Dictionary<string, object> Memory { get; } = new Dictionary<string, object>();
-
-        private void Start()
-        {
-            rules = RuleInterpreter.Interpret();
-            oneshots = new List<Rule>();
-        }
 
         private void Update()
         {
@@ -35,7 +25,7 @@ namespace Assets.Scripts
                 var ray = new Ray(transform.position, transform.forward);
 
                 if (Physics.Raycast(ray, out var hit))
-                {
+                { 
                     var targetMemory = hit.transform.GetMemory();
                     var targetSeen = false;
 
@@ -51,21 +41,15 @@ namespace Assets.Scripts
                         { "TargetSeen", targetSeen },
                     };
 
-                    var character = GenerateCharacterState();
+                    var character = GetCharacterState();
 
-                    QueryManager.Instance.Announce(
-                        "SeeObject", 
-                        "Player", 
-                        @event, 
-                        character, 
-                        Memory, 
-                        rules, 
-                        oneshots);
+                    var args = new QueryArgs("SeeObject", "Player", @event, character, Memory);
+                    this.PostNotification(Notify.Action<QueryArgs>(), args);
                 }
             }
         }
 
-        private Dictionary<string, object> GenerateCharacterState()
+        private Dictionary<string, object> GetCharacterState()
         {
             return new Dictionary<string, object>
             {
