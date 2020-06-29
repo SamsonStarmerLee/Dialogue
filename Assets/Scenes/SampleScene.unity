@@ -938,7 +938,7 @@ CanvasGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 880930281}
   m_Enabled: 1
-  m_Alpha: 1
+  m_Alpha: 0
   m_Interactable: 0
   m_BlocksRaycasts: 0
   m_IgnoreParentGroups: 0
@@ -1017,11 +1017,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 785c23c14a9099c46aee0980d0678d7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fadeInTime: 0.2
-  fadeOutTime: 0.2
+  letterboxFadeTime: 0.25
   subtitlePrefab: {fileID: 597515971711639770, guid: ee1584f731a56f24ba4ac0bbc0ad9d10,
     type: 3}
-  letterbox: {fileID: 1820958095}
+  letterbox: {fileID: 1820958098}
 --- !u!1 &926422532
 GameObject:
   m_ObjectHideFlags: 0

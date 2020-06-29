@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Assets.Scripts.Queries.Subtitles
 {
@@ -12,10 +13,9 @@ namespace Assets.Scripts.Queries.Subtitles
         const float minimumSubtitleDelay = 1.5f;
         const float nameForgetTime = 60.0f;
 
-        [SerializeField] private float fadeInTime;
-        [SerializeField] private float fadeOutTime;
+        [SerializeField] private float letterboxFadeTime;
         [SerializeField] private GameObject subtitlePrefab;
-        [SerializeField] private Transform letterbox;
+        [SerializeField] private Image letterbox;
 
         /// <summary>
         /// This dictionary contains character names and the last time they spoke.
@@ -23,6 +23,12 @@ namespace Assets.Scripts.Queries.Subtitles
         private readonly Dictionary<string, float> speakerHistory = new Dictionary<string, float>();
 
         private readonly List<ActiveSubtitle> activeSubtitles = new List<ActiveSubtitle>();
+        private CanvasGroup subtitleGroup;
+
+        private void Awake()
+        {
+            subtitleGroup = GetComponent<CanvasGroup>();
+        }
 
         private void OnEnable()
         {
@@ -50,25 +56,6 @@ namespace Assets.Scripts.Queries.Subtitles
                 var elapsed = subtitle.Elapsed;
                 var duration = subtitle.Duration;
 
-                // Fade In
-                if (elapsed < fadeInTime)
-                {
-                    var t = elapsed / fadeInTime;
-                    subtitle.Canvas.alpha = t;
-                }
-
-                // Fade Out
-                else if (elapsed > duration - fadeOutTime)
-                {
-                    var r = elapsed - duration - fadeOutTime;
-                    var t = r / fadeOutTime;
-                    subtitle.Canvas.alpha = Mathf.Lerp(1f, 0f, t);
-                }
-                else
-                {
-                    subtitle.Canvas.alpha = 1f;
-                }
-
                 if (elapsed > duration)
                 {
                     toRemove.Add(subtitle);
@@ -80,6 +67,10 @@ namespace Assets.Scripts.Queries.Subtitles
                 Destroy(r.GameObject);
                 activeSubtitles.Remove(r);
             }
+
+            // Fade in/out the subtitle canvas
+            var targetAlpha = (activeSubtitles.Count == 0) ? 0f : 1f;
+            subtitleGroup.alpha = Mathf.MoveTowards(subtitleGroup.alpha, targetAlpha, (1f / letterboxFadeTime) * Time.deltaTime);
         }
 
         private void DisplaySubtitle(SubtitleArgs subtitle)
@@ -107,15 +98,15 @@ namespace Assets.Scripts.Queries.Subtitles
             var text = stringBuilder.ToString();
 
             var duration = Mathf.Clamp(
-                (words * delayPerWord) + fadeInTime + fadeOutTime, 
+                words * delayPerWord, 
                 minimumSubtitleDelay, 
                 float.MaxValue);
 
-            var s = Instantiate(subtitlePrefab, letterbox);
-            var c = s.GetComponent<CanvasGroup>();
-            activeSubtitles.Add(new ActiveSubtitle(s, c, duration));
-
+            var s = Instantiate(subtitlePrefab, letterbox.transform);
             s.GetComponent<TMPro.TextMeshProUGUI>().text = text;
+
+            var canvas = s.GetComponent<CanvasGroup>();
+            activeSubtitles.Add(new ActiveSubtitle(s, canvas, duration));
         }
 
         private bool ShouldAppendSpeaker(string speaker)
