@@ -7,6 +7,7 @@ using CsvHelper;
 using System.Globalization;
 
 using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Queries.Rule>>;
+using Assets.Scripts.Notifications;
 
 // TODO: Explain why checked values populate memory.
 
@@ -104,7 +105,7 @@ namespace Queries
 
             return criteria
                 .Split(Dividers, StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => InterpretCriteriaCode(id, x));
+                .Select(x => InterpretCriterion(id, x));
         }
 
         private static IEnumerable<Rememberer> ParseRemembererCodes(int id, string rememberers)
@@ -116,15 +117,24 @@ namespace Queries
 
             return rememberers
                 .Split(Dividers, StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => InterpretRememberCode(id, x));
+                .Select(x => InterpretRememberer(id, x));
         }
 
-        struct RuleSplit
+        // TODO: C# 8 Record type.
+        sealed class RuleSplit
         {
-            public StateSource Source;
-            public string Key;
-            public char Operator;
-            public string Value;
+            public StateSource Source { get; }
+            public string Key { get; }
+            public char Operator { get; }
+            public float Value { get; }
+
+            public RuleSplit(StateSource source, string key, char @operator, float value)
+            {
+                Source = source;
+                Key = key;
+                Operator = @operator;
+                Value = value;
+            }
         }
 
         static readonly Dictionary<char, StateSource> SourceCodes = new Dictionary<char, StateSource>()
@@ -149,35 +159,41 @@ namespace Queries
             var source = SourceCodes[raw[0]];
             var key = raw.Substring(1, index - 1);
             var op = raw[index];
-            var value = raw.Substring(index + 1);
 
-            // Handle reserved words/characters
+            // According to valve, basically all comparisons can be handled as an interval on a number line.
+            // See: Optimization #6 (page 114) https://www.gdcvault.com/play/1015317/AI-driven-Dynamic-Dialog-through
+            var valueString = raw.Substring(index + 1).ToLowerInvariant();
+            float value;
+
+            // Handle reserved words/characters, or hash strings
             {
-                if (value.ToLowerInvariant() == "timestamp")
+                if (valueString == "timestamp")
                 {
-                    value = Time.time.ToString();
-                } 
-
-                if (value.ToLowerInvariant() == "rule")
+                    // TODO: This won't work
+                    value = Time.time;
+                }
+                else  if (valueString == "rule")
                 {
-                    value = id.ToString();
+                    // Set the value equal to the rule's Id.
+                    value = id;
+                }
+                else if (valueString.Contains('.') || valueString.All(char.IsDigit))
+                {
+                    // A number of some sort
+                    value = float.Parse(valueString);
+                }
+                else
+                {
+                    // Assume this is some sort of string comparison. Hash the string.
+                    value = valueString.GetHashCode();
                 }
             }
 
-            split = new RuleSplit
-            {
-                Source = source,
-                Key = key,
-                Operator = op,
-                Value = value,
-            };
-
+            split = new RuleSplit(source, key, op, value);
             return true;
         }
 
-        #region Is Operators
-
-        private static Criterion InterpretCriteriaCode(int id, string code)
+        private static Criterion InterpretCriterion(int id, string code)
         {
             if (SplitOnOperator(id, code, out var split, '=', '>', '<', '!'))
             {
@@ -186,30 +202,16 @@ namespace Queries
                 var value = split.Value;
                 var op = split.Operator;
 
-                // Check for bool
-                // NOTE: Because of this, 'true' and 'false' are reserved strings.
-                if (op == '=' && value == "true" || value == "false")
+                switch (op)
                 {
-                    return IsBool(split, source);
-                }
-
-                // Check for a number 
-                // Any value containing a decimal is a float check.
-                else if (value.Contains('.'))
-                {
-                    return IsFloat(split, source);
-                }
-
-                // A value containing all digits is an int check.
-                else if (value.All(char.IsDigit))
-                {
-                    return IsInt(split, source);
-                }
-
-                // String comparison.
-                else if (op == '=')
-                {
-                    return (query) => Criteria.Equal(query, split.Key, split.Value, source);
+                    case '=':
+                        return new Criterion(key, source, value, value);
+                    case '>':
+                        return new Criterion(key, source, value, float.MaxValue);
+                    case '<':
+                        return new Criterion(key, source, float.MinValue, value);
+                    case '!':
+                        return new Criterion(key, source, value + float.Epsilon, value - float.Epsilon);
                 }
             }
 
@@ -218,161 +220,16 @@ namespace Queries
             return null;
         }
 
-        private static Criterion IsInt(RuleSplit split, StateSource source)
-        {
-            var i = int.Parse(split.Value);
-
-            switch (split.Operator)
-            {
-                case '=':
-                    return (query) => Criteria.Equal(query, split.Key, i, source);
-                case '>':
-                    return (query) => Criteria.GreaterThan(query, split.Key, i, source);
-                case '<':
-                    return (query) => Criteria.LessThan(query, split.Key, i, source);
-                case '!':
-                    return (query) => !Criteria.Equal(query, split.Key, i, source);
-                default:
-                    Debug.LogError($"Couldn't interpret criteria as int operation: {split.Key}, {split.Operator}, {split.Value}.");
-                    return null;
-            }
-        }
-
-        private static Criterion IsFloat(RuleSplit split, StateSource source)
-        {
-            var f = float.Parse(split.Value);
-
-            switch (split.Operator)
-            {
-                case '=':
-                    return (query) => Criteria.Equal(query, split.Key, f, source);
-                case '>':
-                    return (query) => Criteria.GreaterThan(query, split.Key, f, source);
-                case '<':
-                    return (query) => Criteria.LessThan(query, split.Key, f, source);
-                case '!':
-                    return (query) => !Criteria.Equal(query, split.Key, f, source);
-                default:
-                    Debug.LogError($"Couldn't interpret criteria as float operation: {split.Key}, {split.Operator}, {split.Value}.");
-                    return null;
-            }
-        }
-
-        private static Criterion IsBool(RuleSplit split, StateSource source)
-        {
-            var @bool = bool.Parse(split.Value);
-            return (query) => Criteria.Equal(query, split.Key, @bool, source);
-        }
-
-        #endregion
-
-        #region Set Operators
-
-        private static Rememberer InterpretRememberCode(int id, string code)
+        private static Rememberer InterpretRememberer(int id, string code)
         {
             if (SplitOnOperator(id, code, out var split, '=', '-', '+', '*', '/'))
             {
-                if (split.Source == StateSource.Custom)
-                {
-                    return CustomRemember(code);
-                }
-
-                var source = split.Source;
-                var key = split.Key;
-                var value = split.Value;
-                var op = split.Operator;
-
-                // Bool assignment.
-                // NOTE: Because of this, 'true' and 'false' are reserved strings.
-                if (op == '=' && value == "true" || value == "false")
-                {
-                    return SetBool(split, source);
-                }
-
-                // Check for a number 
-                // Any value containing a decimal is a float manipulation.
-                else if (value.Contains('.'))
-                {
-                    return SetFloat(split, source);
-                }
-
-                // A value containing all digits is an int manipulation.
-                else if (value.All(char.IsDigit))
-                {
-                    return SetInt(split, source);
-                }
-
-                // String assignment.
-                else if (op == '=')
-                {
-                    return (query) => 
-                        Rememberers.Set(query, split.Key, split.Value, source);
-                }
+                return null;
             }
 
             // Failed to interpret.
             Debug.LogError($"Failed to interpret criteria: {code}.");
             return null;
         }
-
-        private static Rememberer SetInt(RuleSplit split, StateSource source)
-        {
-            var @int = int.Parse(split.Value);
-
-            switch (split.Operator)
-            {
-                case '=':
-                    return (query) => Rememberers.Set(query, split.Key, @int, source);
-                case '-':
-                    return (query) => Rememberers.SubtractInt(query, split.Key, @int, source);
-                case '+':
-                    return (query) => Rememberers.AddInt(query, split.Key, @int, source);
-                case '*':
-                    Debug.LogError($"Integer multiplication not supported: {split}. Add a decimal.");
-                    return null;
-                case '/':
-                    Debug.LogError($"Integer division not supported: {split}. Add a decimal.");
-                    return null;
-                default:
-                    Debug.LogError($"Couldn't interpret criteria as int operation: {split}.");
-                    return null;
-            }
-        }
-
-        private static Rememberer SetFloat(RuleSplit split, StateSource source)
-        {
-            var @float = float.Parse(split.Value);
-
-            switch (split.Operator)
-            {
-                case '=':
-                    return (query) => Rememberers.Set(query, split.Key, @float, source);
-                case '-':
-                    return (query) => Rememberers.SubtractFloat(query, split.Key, @float, source);
-                case '+':
-                    return (query) => Rememberers.AddFloat(query, split.Key, @float, source);
-                case '*':
-                    return (query) => Rememberers.MultiplyFloat(query, split.Key, @float, source);
-                case '/':
-                    return (query) => Rememberers.DivideFloat(query, split.Key, @float, source);
-                default:
-                    Debug.LogError($"Couldn't interpret criteria as float operation: {split}.");
-                    return null;
-            }
-        }
-
-        private static Rememberer SetBool(RuleSplit split, StateSource source)
-        {
-            var @bool = bool.Parse(split.Value);
-            return (query) => Rememberers.Set(query, split.Key, @bool, source);
-        }
-
-        private static Rememberer CustomRemember(string code)
-        {
-            // TODO
-            return null;
-        }
-
-        #endregion
     }
 }

@@ -62,7 +62,8 @@ namespace Queries
         {
             foreach (var c in Criteria)
             {
-                if (!c.Invoke(query))
+                if (!query.Get(c.Key, c.Source, out float current) ||
+                    !c.Compare(current))
                 {
                     return false;
                 }

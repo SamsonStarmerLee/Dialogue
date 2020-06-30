@@ -3,33 +3,26 @@ using System;
 
 namespace Queries
 {
-    delegate bool Criterion(Query query);
-
-    static class Criteria
+    class Criterion
     {
-        #region Generic Comparison Criteria
-
-        public static bool Equal<T>(Query query, string key, T value, StateSource source) where T : IEquatable<T>
+        public Criterion(string key, StateSource source, float a, float b)
         {
-            return 
-                query.Get<T>(key, source, out var current) && 
-                current.Equals(value);
+            Key = key;
+            Source = source;
+            this.a = a;
+            this.b = b;
         }
 
-        public static bool GreaterThan<T>(Query query, string key, T value, StateSource source) where T : IComparable<T>
-        {
-            return 
-                query.Get<T>(key, source, out var current) && 
-                current.CompareTo(value) > 0;
-        }
+        private readonly float a, b;
+    
+        public string Key { get; }
 
-        public static bool LessThan<T>(Query query, string key, T value, StateSource source) where T : IComparable<T>
-        {
-            return
-                query.Get<T>(key, source, out var current) &&
-                current.CompareTo(value) < 0;
-        }
+        public StateSource Source { get; }
 
-        #endregion
+        public bool Compare(float x)
+        {
+            return x >= a &&
+                   x <= b;
+        }
     }
 }
