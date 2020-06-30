@@ -8,8 +8,6 @@ namespace Queries
 {
     sealed class Rule
     {
-        private readonly string response;
-
         public Rule(
             int id,
             IEnumerable<Criterion> criteria, 
@@ -24,6 +22,8 @@ namespace Queries
             Cooldown = cooldown ?? -1;
         }
 
+        private readonly string response;
+
         /// <summary>
         /// Unique Id to this rule.
         /// </summary>
@@ -31,6 +31,7 @@ namespace Queries
         
         /// <summary>
         /// The minimum required gap before this rule can re-fire.
+        /// A value of -1 implies no cooldown (a one-shot rule).
         /// </summary>
         public float Cooldown { get; }
 
@@ -41,7 +42,7 @@ namespace Queries
         public int NumCriteria => Criteria.Count;
 
         /// <summary>
-        /// Whether or not this rule can only fire once.
+        /// Whether or not this rule can only trigger once.
         /// </summary>
         public bool OneShot => Cooldown == -1;
 
@@ -72,7 +73,7 @@ namespace Queries
         }
 
         /// <summary>
-        /// Any state to store/manipulate as a result of this rule's successful passing.
+        /// Any state to store/manipulate as a result of a pass.
         /// </summary>
         public void Remember(Query query)
         {

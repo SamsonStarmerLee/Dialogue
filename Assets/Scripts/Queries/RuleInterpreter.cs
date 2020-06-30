@@ -208,7 +208,6 @@ namespace Queries
                 }
             }
 
-            // Failed to interpret.
             Debug.LogError($"Failed to interpret criteria: {code}.");
             return null;
         }
@@ -301,7 +300,6 @@ namespace Queries
                 }
             }
 
-            // Failed to interpret.
             Debug.LogError($"Failed to interpret criteria: {code}.");
             return null;
         }

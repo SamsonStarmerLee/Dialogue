@@ -6,8 +6,6 @@ namespace Queries
 
     static class Criteria
     {
-        #region Generic Comparison Criteria
-
         public static bool Equal<T>(Query query, string key, T value, StateSource source) where T : IEquatable<T>
         {
             return 
@@ -28,7 +26,5 @@ namespace Queries
                 query.Get<T>(key, source, out var current) &&
                 current.CompareTo(value) < 0;
         }
-
-        #endregion
     }
 }

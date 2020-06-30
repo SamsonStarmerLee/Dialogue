@@ -24,7 +24,6 @@ namespace Assets.Scripts
 
         private void Update()
         {
-            // Poll view for things to comment on.
             if (Utility.Elapsed(timeOfLastLook, lookFrequency))
             {
                 timeOfLastLook = Time.time;
