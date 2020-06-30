@@ -157,8 +157,7 @@ namespace Queries
                 {
                     value = Time.time.ToString();
                 } 
-
-                if (value.ToLowerInvariant() == "rule")
+                else if (value.ToLowerInvariant() == "rule")
                 {
                     value = id.ToString();
                 }
@@ -186,10 +185,9 @@ namespace Queries
                 var value = split.Value;
                 var op = split.Operator;
 
-                if (op == '=' && value == "true" || value == "false")
+                if ((op == '=' || op == '!') && value == "true" || value == "false")
                 {
                     // Check for bool
-                    // NOTE: Because of this, 'true' and 'false' are reserved strings.
                     return IsBool(split, source);
                 }
                 else if (value.Contains('.'))
@@ -282,7 +280,6 @@ namespace Queries
                 if (op == '=' && value == "true" || value == "false")
                 {
                     // Bool assignment.
-                    // NOTE: Because of this, 'true' and 'false' are reserved strings.
                     return SetBool(split, source);
                 }
                 else if (value.Contains('.'))
