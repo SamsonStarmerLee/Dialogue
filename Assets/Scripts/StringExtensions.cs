@@ -10,19 +10,19 @@
         {
             int wordCount = 0, index = 0;
 
-            // skip whitespace until first word
+            // Skip whitespace until first word.
             while (index < @this.Length && char.IsWhiteSpace(@this[index]))
                 index++;
 
             while (index < @this.Length)
             {
-                // check if current char is part of a word
+                // Check if current char is part of a word.
                 while (index < @this.Length && !char.IsWhiteSpace(@this[index]))
                     index++;
 
                 wordCount++;
 
-                // skip whitespace until next word
+                // Skip whitespace until next word.
                 while (index < @this.Length && char.IsWhiteSpace(@this[index]))
                     index++;
             }

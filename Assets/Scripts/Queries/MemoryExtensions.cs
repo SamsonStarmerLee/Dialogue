@@ -1,8 +1,7 @@
-﻿using Queries;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace Assets.Scripts
+namespace Queries
 {
     public static class GameObjectMemoryExtensions
     {

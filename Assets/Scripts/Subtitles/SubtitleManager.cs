@@ -1,5 +1,5 @@
 ﻿using Assets.Scripts.Notifications;
-using System;
+using Framework.Maths;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -17,13 +17,17 @@ namespace Assets.Scripts.Queries.Subtitles
         [SerializeField] private GameObject subtitlePrefab;
         [SerializeField] private Image letterbox;
 
+        private CanvasGroup subtitleGroup;
+
         /// <summary>
         /// This dictionary contains character names and the last time they spoke.
         /// </summary>
         private readonly Dictionary<string, float> speakerHistory = new Dictionary<string, float>();
 
-        private readonly List<ActiveSubtitle> activeSubtitles = new List<ActiveSubtitle>();
-        private CanvasGroup subtitleGroup;
+        /// <summary>
+        /// Currently displaying subtitles.
+        /// </summary>
+        private readonly List<Subtitle> activeSubtitles = new List<Subtitle>();
 
         private void Awake()
         {
@@ -47,16 +51,11 @@ namespace Assets.Scripts.Queries.Subtitles
 
         private void Update()
         {
-            var toRemove = new List<ActiveSubtitle>();
+            var toRemove = new List<Subtitle>();
 
             foreach (var subtitle in activeSubtitles)
             {
-                subtitle.Elapsed += Time.deltaTime;
-
-                var elapsed = subtitle.Elapsed;
-                var duration = subtitle.Duration;
-
-                if (elapsed > duration)
+                if (Utility.Elapsed(subtitle.StartTime, subtitle.Duration))
                 {
                     toRemove.Add(subtitle);
                 }
@@ -105,8 +104,7 @@ namespace Assets.Scripts.Queries.Subtitles
             var s = Instantiate(subtitlePrefab, letterbox.transform);
             s.GetComponent<TMPro.TextMeshProUGUI>().text = text;
 
-            var canvas = s.GetComponent<CanvasGroup>();
-            activeSubtitles.Add(new ActiveSubtitle(s, canvas, duration));
+            activeSubtitles.Add(new Subtitle(s, duration, Time.time));
         }
 
         private bool ShouldAppendSpeaker(string speaker)
@@ -126,22 +124,19 @@ namespace Assets.Scripts.Queries.Subtitles
         }
     }
 
-    class ActiveSubtitle
+    class Subtitle
     {
-        public readonly GameObject GameObject;
-        public readonly CanvasGroup Canvas;
-        public readonly float Duration;
-
-        public float Elapsed;
-
-        public ActiveSubtitle(
-            GameObject subtitleObject,
-            CanvasGroup canvas,
-            float duration)
+        public Subtitle(GameObject gameObject, float duration, float startTime)
         {
-            GameObject = subtitleObject;
-            Canvas = canvas;
+            GameObject = gameObject;
             Duration = duration;
+            StartTime = startTime;
         }
+
+        public GameObject GameObject { get; }
+
+        public float Duration { get; }
+
+        public float StartTime { get; }
     }
 }

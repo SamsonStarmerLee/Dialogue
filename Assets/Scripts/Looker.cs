@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts.Notifications;
+using Framework.Maths;
 using Queries;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,20 +8,26 @@ namespace Assets.Scripts
 {
     public class Looker : MonoBehaviour, IMemoryRetainer
     {
+        /// <summary>
+        /// How many seconds between each poll of the environment.
+        /// </summary>
+        [SerializeField] private float lookFrequency;
+
+        /// <summary>
+        /// This character's subtitle color when speaking.
+        /// </summary>
         [SerializeField] private Color subtitleColor;
 
-        private float timeOfLastInspection;
+        private float timeOfLastLook;
 
         public Dictionary<string, object> Memory { get; } = new Dictionary<string, object>();
 
         private void Update()
         {
-            timeOfLastInspection += Time.deltaTime;
-
             // Poll view for things to comment on.
-            if (timeOfLastInspection >= 1f)
+            if (Utility.Elapsed(timeOfLastLook, lookFrequency))
             {
-                timeOfLastInspection = 0f;
+                timeOfLastLook = Time.time;
 
                 var ray = new Ray(transform.position, transform.forward);
 
@@ -29,6 +36,7 @@ namespace Assets.Scripts
                     var targetMemory = hit.transform.GetMemory();
                     var targetSeen = false;
 
+                    // Memory-holding targets may store whether they have been seen previously.
                     if (targetMemory != null && targetMemory.TryGetValue("TargetSeen", out var value))
                     {
                         targetSeen = (bool)value;
