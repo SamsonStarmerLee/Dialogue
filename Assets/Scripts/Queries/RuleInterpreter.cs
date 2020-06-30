@@ -186,29 +186,26 @@ namespace Queries
                 var value = split.Value;
                 var op = split.Operator;
 
-                // Check for bool
-                // NOTE: Because of this, 'true' and 'false' are reserved strings.
                 if (op == '=' && value == "true" || value == "false")
                 {
+                    // Check for bool
+                    // NOTE: Because of this, 'true' and 'false' are reserved strings.
                     return IsBool(split, source);
                 }
-
-                // Check for a number 
-                // Any value containing a decimal is a float check.
                 else if (value.Contains('.'))
                 {
+                    // Check for a number 
+                    // Any value containing a decimal is a float check.
                     return IsFloat(split, source);
                 }
-
-                // A value containing all digits is an int check.
                 else if (value.All(char.IsDigit))
                 {
+                    // A value containing all digits is an int check.
                     return IsInt(split, source);
                 }
-
-                // String comparison.
                 else if (op == '=')
                 {
+                    // String comparison.
                     return (query) => Criteria.Equal(query, split.Key, split.Value, source);
                 }
             }
@@ -282,29 +279,26 @@ namespace Queries
                 var value = split.Value;
                 var op = split.Operator;
 
-                // Bool assignment.
-                // NOTE: Because of this, 'true' and 'false' are reserved strings.
                 if (op == '=' && value == "true" || value == "false")
                 {
+                    // Bool assignment.
+                    // NOTE: Because of this, 'true' and 'false' are reserved strings.
                     return SetBool(split, source);
                 }
-
-                // Check for a number 
-                // Any value containing a decimal is a float manipulation.
                 else if (value.Contains('.'))
                 {
+                    // Check for a number 
+                    // Any value containing a decimal is a float manipulation.
                     return SetFloat(split, source);
                 }
-
-                // A value containing all digits is an int manipulation.
                 else if (value.All(char.IsDigit))
                 {
+                    // A value containing all digits is an int manipulation.
                     return SetInt(split, source);
                 }
-
-                // String assignment.
                 else if (op == '=')
                 {
+                    // String assignment.
                     return (query) => 
                         Rememberers.Set(query, split.Key, split.Value, source);
                 }
