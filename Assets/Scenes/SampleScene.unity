@@ -2218,6 +2218,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d38c13c2b38593b41867b72427a0dba0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  lookFrequency: 1
   subtitleColor: {r: 1, g: 0.98960435, b: 0.23113209, a: 1}
 --- !u!1 &1747043733
 GameObject:

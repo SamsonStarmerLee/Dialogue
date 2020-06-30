@@ -25,3 +25,7 @@ mSeenBarrels>2","mSeenBarrels+1
 tTargetSeen=true",10.0
 11,SeeObject,Player,What a big barrel!,"eTargetName=BigBarrel
 eTargetSeen=false",tTargetSeen=true,
+12,SeeObject,Player,The sixth barrel. Preposterous!,"eTargetName=Barrel
+eTargetSeen=false
+mSeenBarrels=5","mSeenBarrels+1
+tTargetSeen=true",
