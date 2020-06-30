@@ -62,7 +62,8 @@ namespace Queries
         {
             foreach (var c in Criteria)
             {
-                if (!query.Get(c.Key, c.Source, out float current) ||
+                // TODO add a ! here
+                if (query.Get(c.Key, c.Source, out float current) ||
                     !c.Compare(current))
                 {
                     return false;
@@ -79,7 +80,7 @@ namespace Queries
         {
             foreach (var rememberer in Rememberers)
             {
-                rememberer.Invoke(query);
+                rememberer.Remember(query);
             }
 
             Triggered = true;

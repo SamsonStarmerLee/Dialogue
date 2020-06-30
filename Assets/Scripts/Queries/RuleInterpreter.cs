@@ -7,7 +7,7 @@ using CsvHelper;
 using System.Globalization;
 
 using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Queries.Rule>>;
-using Assets.Scripts.Notifications;
+using UnityEditor.PackageManager;
 
 // TODO: Explain why checked values populate memory.
 
@@ -36,6 +36,17 @@ namespace Queries
     sealed class RuleInterpreter
     {
         static readonly string[] Dividers = { Environment.NewLine, "\r\n", "\n" };
+
+        const string TimeStamp = "timestamp";
+        const string Rule = "rule";
+        private static float TimeStampHash;
+        private static float RuleHash;
+
+        public RuleInterpreter()
+        {
+            TimeStampHash = TimeStamp.GetHashCode();
+            RuleHash = RuleHash.GetHashCode();
+        }
 
         sealed class RuleFixture
         {
@@ -224,7 +235,35 @@ namespace Queries
         {
             if (SplitOnOperator(id, code, out var split, '=', '-', '+', '*', '/'))
             {
-                return null;
+                float value;
+
+                if (split.Value == TimeStampHash)
+                {
+                    value = Time.time;
+                }
+                else if (split.Value == RuleHash)
+                {
+                    // Set the value equal to the rule's Id.
+                    value = id;
+                }
+                else
+                {
+                    value = split.Value;
+                }
+
+                switch (split.Operator)
+                {
+                    case '=':
+                        return new Set(split.Key, split.Source, value);
+                    case '-':
+                        return new Subtract(split.Key, split.Source, value);
+                    case '+':
+                        return new Add(split.Key, split.Source, value);
+                    case '*':
+                        return new Multiply(split.Key, split.Source, value);
+                    case '/':
+                        return new Divide(split.Key, split.Source, value);
+                }
             }
 
             // Failed to interpret.

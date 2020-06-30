@@ -21,29 +21,29 @@ namespace Queries
         /// State set by whatever event triggered a query. 
         /// Includes information about what is currently happening.
         /// </summary>
-        private readonly Dictionary<string, object> @event;
+        private readonly Dictionary<string, float> @event;
 
         /// <summary>
         /// Includes information about the querying character's state, 
         /// such as that character's current position, rotation, stats, etc.
         /// </summary>
-        private readonly Dictionary<string, object> character;
+        private readonly Dictionary<string, float> character;
 
         /// <summary>
         /// The triggering character's personal memory.
         /// Intended to store running tallies of things seen, interacted with, performed, etc.
         /// </summary>
-        private readonly Dictionary<string, object> memory;
+        private readonly Dictionary<string, float> memory;
 
         /// <summary>
         /// Collective memory of the gameworld.
         /// A globally accessible equivalent to [memory].
         /// </summary>
-        private readonly Dictionary<string, object> world;
+        private readonly Dictionary<string, float> world;
 
         public Query(
             QueryArgs args,
-            Dictionary<string, object> world)
+            Dictionary<string, float> world)
         {
             Concept = args.Concept;
             Who = args.Who;
@@ -58,33 +58,28 @@ namespace Queries
         /// [result] will return the default value if not present or of mismatching type.
         /// IMPORTANT: If the value is not present, the default value _will be set into state_.
         /// </summary>
-        public bool Get<T>(string key, StateSource source, out T result)
+        public bool Get(string key, StateSource source, out float result)
         {
-            GetState(source).TryGetValue(key, out var value);
+            GetState(source).TryGetValue(key, out float value);
 
-            if (value is T t)
+            if (source != StateSource.Event && source != StateSource.Character)
             {
-                result = t;
-                return true;
-            }
-            else if (source != StateSource.Event && source != StateSource.Character)
-            {
+                // TODO
+                // Set the value into memory
                 result = default;
                 Set(key, result, source);
                 return false;
             }
-            else
-            {
-                result = default;
-                return false;
-            }
+
+            result = value;
+            return true;
         }
 
         /// <summary>
         /// Set a value in memory.
         /// A new value for the key will be created if it doesn't already exist.
         /// </summary>
-        public void Set(string key, object value, StateSource source)
+        public void Set(string key, float value, StateSource source)
         {
             if (source == StateSource.Event || source == StateSource.Character)
             {
@@ -95,27 +90,7 @@ namespace Queries
             state[key] = value;
         }
 
-        /// <summary>
-        /// Runs a method on the value at [key], setting it back in state.
-        /// The transformation will be ran on a new default value if not present in state.
-        /// </summary>
-        public void Transform<T>(string key, Func<T, T> transformation, StateSource source)
-        {
-            Get(key, source, out T value);
-            Set(key, transformation.Invoke(value), source);
-        }
-
-        /// <summary>
-        /// Increments an int stored at [key] by [amount].
-        /// Will increment and set a new value from 0 if not present in state.
-        /// </summary>
-        public void Increment(string key, int amount, StateSource source)
-        {
-            Get(key, source, out int value);
-            Set(key, value + amount, source);
-        }
-
-        private Dictionary<string, object> GetState(StateSource source)
+        private Dictionary<string, float> GetState(StateSource source)
         {
             switch (source)
             {
@@ -138,21 +113,23 @@ namespace Queries
         /// Queries the reserved "Target" state for a gameobject, returning its memory.
         /// This will add memory to any valid gameobject returned that does not have one.
         /// </summary>
-        private Dictionary<string, object> GetTargetMemory()
+        private Dictionary<string, float> GetTargetMemory()
         {
-            if (Get<GameObject>("Target", StateSource.Event, out var obj) && obj != null)
-            {
-                var mem = obj.GetMemory();
-                if (mem == null)
-                {
-                    mem = obj.AddComponent<MemoryContainer>().Memory;
-                }
-                return mem;
-            }
-            else
-            {
-                return null;
-            }
+            //if (Get<GameObject>("Target", StateSource.Event, out var obj) && obj != null)
+            //{
+            //    var mem = obj.GetMemory();
+            //    if (mem == null)
+            //    {
+            //        mem = obj.AddComponent<MemoryContainer>().Memory;
+            //    }
+            //    return mem;
+            //}
+            //else
+            //{
+            //    return null;
+            //}
+        
+            // TODO: Make this work
         }
     }
 }

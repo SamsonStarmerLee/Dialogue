@@ -36,9 +36,9 @@ namespace Assets.Scripts
 
                     var @event = new Dictionary<string, object>
                     {
-                        { "Target", hit.transform.gameObject },
-                        { "TargetName", hit.transform.name },
-                        { "TargetSeen", targetSeen },
+                        { "Target", hit.transform.gameObject.GetHashCode() },
+                        { "TargetName", hit.transform.name.GetHashCode() },
+                        { "TargetSeen", targetSeen.GetHashCode() },
                     };
 
                     var character = GetCharacterState();
@@ -53,8 +53,8 @@ namespace Assets.Scripts
         {
             return new Dictionary<string, object>
             {
-                { "Position", transform.position },
-                { "SubtitleColor", subtitleColor },
+                { "Position", transform.position.GetHashCode() },
+                { "SubtitleColor", subtitleColor.GetHashCode() },
             };
         }
     }
