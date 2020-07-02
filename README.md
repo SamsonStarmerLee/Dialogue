@@ -3,15 +3,15 @@
 An in-progress pattern-matching approach to dialogue events, based on the theory behind Valve's 2012 GDC talk: 
 [AI-driven Dynamic Dialog through Fuzzy Pattern Matching](https://youtu.be/tAbBID3N64A)
 
-Dialogue is stored as a series of rules, ordered from the specific to the general. Each rule can test any state about 
-triggering events, relevant characters or the state of the world. 
+Dialogue is stored as a series of rules, ordered from the specific to the general. Each rule tests state about 
+triggering events, relevant characters or the state of the world. It is intended to be writable by a non-programmer.
 
-When a rule is successful, the related dialogue is printed out, and the rule can then write back some state,
-for keeping track of relevent information. In this way, writers can create arbitrary data for tracking thing like 
-running jokes, sequential lines or properties about the world (without needing a programmer to expose them).
+When a rule is successful, the related dialogue is printed out and the rule can write back arbitrary data to 
+relevant state sources. In this way, writers can create story-specific data for tracking thing like running jokes, 
+sequential lines or properties about the world (without needing a programmer).
 
-These dialogue rules, broken up as state-checking Criteria and state-writing Rememberers, are written out in 
-Excell/google sheets/etc and exported as a CSV, for bringing into Unity. 
+These dialogue rules, broken up as state-checking `Criteria` and state-writing `Rememberers`, are written out in 
+Excel/Google Sheets/etc and exported as a CSV, for bringing into Unity. 
 
 ## State
 
@@ -38,15 +38,46 @@ a character to remember what it has said, seen, and done.
 The global equivalent of character memory. This enables many actors to coordinate; for example, multiple characters
 searching for objects could collectively know how many had been found.
 
-## Formatting
+## Example Rule
 
-When writing a criteria/remember, the checks are appended with a character associated with each of the above:
+![Read more words!](ExampleRule.png)
+
+Here we see a rule which remarks upon and remembers the first barrel we look at.
+
+### Id
+An id unique to this rule. It can be checked by rules to ensure lines are correctly ordered.
+
+### Concept / Who
+**Concept** refers to the type of event, this case, looking at an object.
+**Who** is the name of the speaking character.
+
+These are both kept separate for optimization purposes.
+
+### Criteria/Rememberer Formatting
+
+When writing a criteria/rememberer, the checks are appended with a character associated with each of the state sources:
 - **'e'**: Event State
 - **'c'**: Character State
 - **'m'**: Character Memory
 - **'w'**: World Memeory
 - **'t'**: Shortcut for accessing the memory of a 'target' character, if there is one.
 
-There are some reserved strings, such as 'true' and 'false'. These are explained in `RuleInterpreter.cs`.
+Criteria can use the following basic operators to check state: '=', '>', '<', '!'.
 
+Rememberers can set or mutate state with the following operators: '=', '-', '+', '*', '/'.
 
+There are some reserved strings, such as 'true' and 'false'. These are explained in `RuleInterpreter.cs.`
+
+### Cooldown
+An optional parameter which allows a rule to re-trigger after x seconds. If no value is given, the rule is a one-shot and will never trigger twice.
+
+# To-Do
+
+- The `floatComparisons` branch represents an attempt to simplify all criteria to comparisons on a number-line. The Valve talk goes over this 
+as [Optimization #6.](https://www.gdcvault.com/play/1015317/AI-driven-Dynamic-Dialog-through)
+
+- Responses are currently just text. In the future they should be able to trigger animations, sound effects, and so on.
+
+# Other
+
+This project also includes a simple subtitle system used for displaying the dialogue. It tries to display subtitles matching to the [BBC Subtitling Guidelines,](https://bbc.github.io/subtitle-guidelines/) but is otherwise nothing special.
