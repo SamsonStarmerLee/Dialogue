@@ -8,8 +8,6 @@ using System.Globalization;
 
 using RuleMap = System.Collections.Generic.Dictionary<(string concept, string who), System.Collections.Generic.List<Queries.Rule>>;
 
-// TODO: Explain why checked values populate memory.
-
 // Reserved words and characters:
 
 // Criteria Values
@@ -29,6 +27,8 @@ using RuleMap = System.Collections.Generic.Dictionary<(string concept, string wh
 
 // TODO: Right now, custom criteria/remememberers are found using reflection, making them slow to do many times. 
 // Perhaps replace with a dictionary or something.
+
+// TODO: Explain why checked values populate memory.
 
 namespace Queries
 {
