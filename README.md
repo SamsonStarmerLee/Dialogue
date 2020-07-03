@@ -1,14 +1,14 @@
 # Dialogue
 
-An in-progress pattern-matching approach to dialogue events, based on the theory behind Valve's 2012 GDC talk: 
+An in-progress, pattern-matching approach to dialogue events, based on the theory behind Valve's 2012 GDC talk: 
 [AI-driven Dynamic Dialog through Fuzzy Pattern Matching](https://youtu.be/tAbBID3N64A)
 
 Dialogue is stored as a series of rules, ordered from the specific to the general. Each rule tests state about 
 triggering events, relevant characters or the state of the world. It is intended to be writable by a non-programmer.
 
 When a rule is successful, the related dialogue is printed out and the rule can write back arbitrary data to 
-relevant state sources. In this way, writers can create story-specific data for tracking thing like running jokes, 
-sequential lines or properties about the world (without needing a programmer).
+relevant state sources. In this way, writers can create story-specific data for tracking things like running jokes, 
+sequential lines, or properties about the world (without needing a programmer).
 
 These dialogue rules, broken up as state-checking `Criteria` and state-writing `Rememberers`, are written out in 
 Excel/Google Sheets/etc and exported as a CSV, for bringing into Unity. 
@@ -48,7 +48,7 @@ Here we see a rule which remarks upon and remembers the first barrel we look at.
 An id unique to this rule. It can be checked by rules to ensure lines are correctly ordered.
 
 ### Concept / Who
-**Concept** refers to the type of event, this case, looking at an object.
+**Concept** refers to the type of event, in this case, looking at an object.
 **Who** is the name of the speaking character.
 
 These are both kept separate for optimization purposes.
