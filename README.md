@@ -1,6 +1,8 @@
 # Dialogue
 ![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)
 
+![A Barrel](Images/Barrel.png)
+
 An in-progress, pattern-matching approach to dialogue events, based on the theory behind Valve's 2012 GDC talk: 
 [AI-driven Dynamic Dialog through Fuzzy Pattern Matching](https://youtu.be/tAbBID3N64A)
 
